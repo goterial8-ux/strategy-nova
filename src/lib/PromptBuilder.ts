@@ -50,7 +50,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       stage1Prompt = stage1Prompt.replaceAll('{{PROJECT_TITLE}}', state.projectTitle || 'None');
       stage1Prompt = stage1Prompt.replaceAll('{{RAW_IDEA}}', state.rawIdea || 'None');
       stage1Prompt = stage1Prompt.replaceAll('{{GENRE}}', state.genre || 'None');
-      stage1Prompt = stage1Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', state.language || 'Russian');
+      stage1Prompt = stage1Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', 'Russian');
       stage1Prompt = stage1Prompt.replaceAll('{{TARGET_LENGTH}}', state.targetLength || 'None');
       stage1Prompt = stage1Prompt.replaceAll('{{STYLE_NOTES}}', state.styleNotes || 'None');
       stage1Prompt = stage1Prompt.replaceAll('{{FORBIDDEN_ELEMENTS}}', state.forbiddenElements || 'None');
@@ -65,7 +65,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       stylePrompt = stylePrompt.replaceAll('{{COMPETITORS}}', state.competitors || 'None');
       stylePrompt = stylePrompt.replaceAll('{{RAW_IDEA}}', state.rawIdea || state.developedIdea || 'None');
       stylePrompt = stylePrompt.replaceAll('{{GLOBAL_RULES}}', state.promptRegistry.globalRulesPrompt);
-      prompt += stylePrompt + `\n\n` + (state.promptRegistry as any).stageStyleAnalyzerExampleResponse || ''; 
+      prompt += stylePrompt + `\n\n` + ((state.promptRegistry as any).stageStyleAnalyzerExampleResponse || '') + `\n\nIMPORTANT: Output the extracted Style DNA and analysis in Russian language.`; 
       break;
     case 'story_dna': 
       let stage2Prompt = state.promptRegistry.stageTwoStoryDNAPrompt;
@@ -73,7 +73,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       stage2Prompt = stage2Prompt.replaceAll('{{DEVELOPED_IDEA}}', state.developedIdea || 'None');
       stage2Prompt = stage2Prompt.replaceAll('{{STAGE_ONE_HANDOFF}}', 'Refer to the Handoff Summary in the Developed Idea above.');
       stage2Prompt = stage2Prompt.replaceAll('{{GENRE}}', state.genre || 'None');
-      stage2Prompt = stage2Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', state.language || 'Russian');
+      stage2Prompt = stage2Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', 'Russian');
       stage2Prompt = stage2Prompt.replaceAll('{{TARGET_LENGTH}}', state.targetLength || 'None');
       stage2Prompt = stage2Prompt.replaceAll('{{STYLE_NOTES}}', state.styleNotes || 'None');
       stage2Prompt = stage2Prompt.replaceAll('{{FORBIDDEN_ELEMENTS}}', state.forbiddenElements || 'None');
@@ -89,7 +89,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       stage3Prompt = stage3Prompt.replaceAll('{{STORY_CONTRACT}}', state.storyContract || 'None');
       stage3Prompt = stage3Prompt.replaceAll('{{CHARACTER_BIBLE}}', state.characterBible || 'None');
       stage3Prompt = stage3Prompt.replaceAll('{{GENRE}}', state.genre || 'None');
-      stage3Prompt = stage3Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', state.language || 'Russian');
+      stage3Prompt = stage3Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', 'Russian');
       stage3Prompt = stage3Prompt.replaceAll('{{TARGET_LENGTH}}', state.targetLength || 'None');
       stage3Prompt = stage3Prompt.replaceAll('{{STYLE_NOTES}}', state.styleNotes || 'None');
       stage3Prompt = stage3Prompt.replaceAll('{{FORBIDDEN_ELEMENTS}}', state.forbiddenElements || 'None');
@@ -104,7 +104,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
     case 'scene_cards': 
       let stage4Prompt = state.promptRegistry.stageFourSceneCardsPrompt;
       stage4Prompt = stage4Prompt.replaceAll('{{PROJECT_TITLE}}', state.projectTitle || 'None');
-      stage4Prompt = stage4Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', state.language || 'Russian');
+      stage4Prompt = stage4Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', 'Russian');
       stage4Prompt = stage4Prompt.replaceAll('{{GENRE}}', state.genre || 'None');
       stage4Prompt = stage4Prompt.replaceAll('{{TARGET_LENGTH}}', state.targetLength || 'None');
       stage4Prompt = stage4Prompt.replaceAll('{{DEVELOPED_IDEA}}', state.developedIdea || 'None');
