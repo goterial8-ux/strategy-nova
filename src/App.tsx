@@ -589,6 +589,14 @@ export default function App() {
 
         const success = await handleGeneratePart(i);
         if (!success || stopRequestedRef.current) break;
+
+        // If there are more parts to generate, perform a safe back-off delay of 4 seconds to prevent 429 RPM limit
+        if (i < stateRef.current.scriptParts.length - 1) {
+            console.log("Waiting 4 seconds before the next part generation to avoid 429 rate limits...");
+            setWarningMessage("Соблюдаем паузу перед следующей частью для обхода лимитов...");
+            await new Promise((resolve) => setTimeout(resolve, 4000));
+            setWarningMessage(null);
+        }
     }
 
     setIsBatchGenerating(false);
