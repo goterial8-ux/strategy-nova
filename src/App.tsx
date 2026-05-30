@@ -52,7 +52,21 @@ export default function App() {
   useEffect(() => {
     stopRequestedRef.current = stopRequested;
   }, [stopRequested]);
-  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [warningMessage, setWarningMessageRaw] = useState<string | null>(null);
+  const setWarningMessage = (msg: any) => {
+    if (msg === null) {
+      setWarningMessageRaw(null);
+    } else if (typeof msg === 'object') {
+      try {
+        const actualMsg = msg.message && typeof msg.message === 'string' ? msg.message : JSON.stringify(msg);
+        setWarningMessageRaw(actualMsg);
+      } catch {
+        setWarningMessageRaw(String(msg));
+      }
+    } else {
+      setWarningMessageRaw(String(msg));
+    }
+  };
   const [showDebug, setShowDebug] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
   const [generationAttempt, setGenerationAttempt] = useState<number>(0);

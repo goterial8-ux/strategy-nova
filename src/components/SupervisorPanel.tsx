@@ -97,9 +97,13 @@ export function SupervisorPanel({ report, isGenerating, onAnalyze, onApplyRepair
               Can Continue: {report.canContinue ? 'YES' : 'NO'}
             </span>
           </h4>
-          <p className="text-slate-700 leading-relaxed font-medium mb-2">{report.whatIsGood}</p>
+          <p className="text-slate-700 leading-relaxed font-medium mb-2">
+            {typeof report.whatIsGood === 'object' ? JSON.stringify(report.whatIsGood) : String(report.whatIsGood || '')}
+          </p>
           {report.recommendation && (
-            <p className="text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-3">{report.recommendation}</p>
+            <p className="text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-3">
+              {typeof report.recommendation === 'object' ? JSON.stringify(report.recommendation) : String(report.recommendation)}
+            </p>
           )}
         </div>
         
@@ -107,7 +111,9 @@ export function SupervisorPanel({ report, isGenerating, onAnalyze, onApplyRepair
           <div className="w-1/3 flex flex-col gap-2">
             <h4 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Detected Problems</h4>
             <ul className="text-rose-700 space-y-1.5 list-disc pl-4 font-medium">
-              {report.problems.map((prob, i) => <li key={i}>{prob}</li>)}
+              {report.problems.map((prob, i) => (
+                <li key={i}>{typeof prob === 'object' ? JSON.stringify(prob) : String(prob)}</li>
+              ))}
             </ul>
           </div>
         )}
@@ -116,7 +122,9 @@ export function SupervisorPanel({ report, isGenerating, onAnalyze, onApplyRepair
           <div className="w-1/3 flex flex-col gap-2">
             <h4 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Required Fixes</h4>
             <ul className="text-amber-700 space-y-1.5 list-disc pl-4 font-medium">
-              {report.requiredFixes.map((fix, i) => <li key={i}>{fix}</li>)}
+              {report.requiredFixes.map((fix, i) => (
+                <li key={i}>{typeof fix === 'object' ? JSON.stringify(fix) : String(fix)}</li>
+              ))}
             </ul>
           </div>
         )}
