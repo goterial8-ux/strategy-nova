@@ -65,13 +65,18 @@ export default function App() {
     timeoutMs = 300000
   ): Promise<any> => {
     let attempt = 0;
+    const actualTimeoutMs = typeof timeoutMs === 'number' && !isNaN(timeoutMs) && timeoutMs > 0 ? timeoutMs : 300000;
+
     while (attempt < maxAttempts) {
       attempt++;
       setGenerationAttempt(attempt);
       console.log(`Fetch attempt ${attempt} of ${maxAttempts} for ${url}`);
 
+      const startTime = Date.now();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, actualTimeoutMs);
 
       try {
         const response = await fetch(url, {
@@ -105,7 +110,8 @@ export default function App() {
 
       } catch (err: any) {
         clearTimeout(timeoutId);
-        console.warn(`Attempt ${attempt} failed:`, err);
+        const elapsed = Date.now() - startTime;
+        console.warn(`Attempt ${attempt} failed after ${elapsed}ms:`, err);
 
         // If batch or user stopped, abort
         if (stopRequestedRef.current) {
@@ -122,10 +128,14 @@ export default function App() {
         const errorMessage = String(err.message || err);
         let waitTime = 2000;
         
+        // A transient abort is an AbortError that happened before the actual timeout period (e.g. browser tab suspended, server restarted)
+        const isTransientAbort = (err.name === 'AbortError' || errorMessage.includes('abort') || errorMessage.includes('Abort')) && elapsed < (actualTimeoutMs - 5000);
+
         if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
           waitTime = Math.min(5000 * Math.pow(2, attempt - 1), 60000);
           setWarningMessage(`Rate limit hit. Retrying in ${waitTime/1000}s... (Attempt ${attempt} of ${maxAttempts})`);
-        } else {
+        } else if (!isTransientAbort || attempt > 2) {
+          // Suppress visual warnings for early transient browser/server-reconnect aborts so it doesn't alarm the user
           setWarningMessage(`Attempt ${attempt} of ${maxAttempts} timed out or failed. Retrying...`);
         }
         
