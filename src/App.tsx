@@ -5,6 +5,32 @@ import { LeftPanel } from './components/LeftPanel';
 import { RightPanel } from './components/RightPanel';
 import { SupervisorPanel } from './components/SupervisorPanel';
 import { Bug, X } from 'lucide-react';
+import { saveProjectState, loadProjectState } from './lib/db';
+
+function compactStateForStorage(inputState: ProjectState): ProjectState {
+  // Return a shallow copy to prevent modifying active react state
+  const compacted = { ...inputState };
+  
+  if (compacted.promptHistory) {
+    compacted.promptHistory = compacted.promptHistory.map(entry => {
+      let promptPreview = entry.promptUsed;
+      if (typeof promptPreview === 'string' && promptPreview.length > 800) {
+        promptPreview = promptPreview.substring(0, 800) + '...\n[PROMPT TRUNCATED FOR STORAGE EFFICIENCY]';
+      }
+      return {
+        ...entry,
+        promptUsed: promptPreview
+      };
+    });
+    
+    // Limit history list size to last 15 items to avoid storage bloat
+    if (compacted.promptHistory.length > 15) {
+      compacted.promptHistory = compacted.promptHistory.slice(0, 15);
+    }
+  }
+  
+  return compacted;
+}
 
 export default function App() {
   const [state, setState] = useState<ProjectState>(() => {
@@ -163,21 +189,69 @@ export default function App() {
     throw new Error("Maximum generation attempts reached.");
   };
 
+  // Load initial backup from IndexedDB to ensure no data is lost
+  useEffect(() => {
+    loadProjectState('studio_writer_project')
+      .then((dbState) => {
+        if (dbState && dbState.promptHistory) {
+          console.log("Restored project state from IndexedDB backup.");
+          setState(dbState);
+          stateRef.current = dbState;
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to restore state from IndexedDB:", err);
+      });
+  }, []);
+
   useEffect(() => {
     setSaveStatus('saving');
-    localStorage.setItem('studio_writer_project', JSON.stringify(state));
-    localStorage.setItem('studio_writer_stage', currentStageId);
-    const timer = setTimeout(() => setSaveStatus('saved'), 500);
+    
+    // 1. Save to localStorage with Try/Catch and Compacting
+    try {
+      const compacted = compactStateForStorage(state);
+      localStorage.setItem('studio_writer_project', JSON.stringify(compacted));
+      localStorage.setItem('studio_writer_stage', currentStageId);
+    } catch (err) {
+      console.error("localStorage saving failed, but backup in IndexedDB is active:", err);
+    }
+
+    // 2. Clearer and larger master backup to IndexedDB
+    saveProjectState('studio_writer_project', state)
+      .then(() => {
+        setSaveStatus('saved');
+      })
+      .catch((err) => {
+        console.error("IndexedDB save failed:", err);
+      });
+
+    const timer = setTimeout(() => {
+      setSaveStatus('saved');
+    }, 500);
+
     return () => clearTimeout(timer);
   }, [state, currentStageId]);
 
   const handleResetProject = () => {
     if (window.confirm("Are you sure you want to start a new project? This will clear all current work.")) {
-      localStorage.removeItem('studio_writer_project');
-      localStorage.removeItem('studio_writer_stage');
-      setState(INITIAL_STATE);
-      stateRef.current = INITIAL_STATE;
-      setCurrentStageId('raw_idea');
+      try {
+        localStorage.removeItem('studio_writer_project');
+        localStorage.removeItem('studio_writer_stage');
+      } catch (err) {
+        console.error("Failed to clean localStorage:", err);
+      }
+      
+      saveProjectState('studio_writer_project', INITIAL_STATE)
+        .then(() => {
+          setState(INITIAL_STATE);
+          stateRef.current = INITIAL_STATE;
+          setCurrentStageId('raw_idea');
+        })
+        .catch(() => {
+          setState(INITIAL_STATE);
+          stateRef.current = INITIAL_STATE;
+          setCurrentStageId('raw_idea');
+        });
     }
   };
 
@@ -277,7 +351,7 @@ export default function App() {
         const newHistoryEntry = {
           id: Date.now().toString(),
           stageId: currentStageId,
-          promptUsed,
+          promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
           inputDataSummary: `Generated for ${currentStageId}`,
           outputPreview: textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : ''),
           createdAt: Date.now(),
@@ -350,7 +424,7 @@ export default function App() {
         const newHistoryEntry = {
             id: Date.now().toString(),
             stageId: currentStageId,
-            promptUsed,
+            promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
             inputDataSummary: `Analyze output for ${currentStageId}`,
             outputPreview: JSON.stringify(report, null, 2),
             createdAt: Date.now(),
@@ -408,11 +482,11 @@ export default function App() {
         const newHistoryEntry = {
             id: Date.now().toString(),
             stageId: currentStageId,
-            promptUsed,
+            promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
             inputDataSummary: `Repair output for ${currentStageId}`,
             outputPreview: textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : ''),
             createdAt: Date.now(),
-            supervisorStatus: 'ok',
+            supervisorStatus: 'ok' as const,
             repairApplied: true,
             lockedStatus: false
         };
@@ -561,8 +635,8 @@ export default function App() {
       
       const newHistoryEntry = {
           id: Date.now().toString(),
-          stageId: 'script_writer',
-          promptUsed,
+          stageId: 'script_writer' as StageId,
+          promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
           inputDataSummary: `Generated for Script Part ${partNum}`,
           outputPreview: textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : ''),
           createdAt: Date.now(),
