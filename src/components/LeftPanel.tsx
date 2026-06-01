@@ -7,9 +7,11 @@ interface LeftPanelProps {
   updateState: (partial: Partial<ProjectState>) => void;
   onResetProject: () => void;
   saveStatus?: 'saved' | 'saving' | 'idle';
+  onLoadBuiltInReferences: (force?: boolean) => void;
+  isLoadingReferences?: boolean;
 }
 
-export function LeftPanel({ state, updateState, onResetProject, saveStatus }: LeftPanelProps) {
+export function LeftPanel({ state, updateState, onResetProject, saveStatus, onLoadBuiltInReferences, isLoadingReferences }: LeftPanelProps) {
   
   return (
     <aside className="w-[280px] h-full border-r border-slate-200 bg-white flex flex-col pt-4 overflow-hidden shrink-0">
@@ -109,9 +111,29 @@ export function LeftPanel({ state, updateState, onResetProject, saveStatus }: Le
           <textarea
             className="bg-white border border-slate-200 rounded-[2px] px-3 py-1.5 text-[12px] text-slate-900 focus:outline-none focus:border-blue-500 h-24 resize-y"
             value={state.competitors}
-            onChange={e => updateState({ competitors: e.target.value })}
+            onChange={e => updateState({ competitors: e.target.value, referenceLibraryLoaded: false })}
             placeholder="Paste competitor scripts here for style reference (do not copy meaning)..."
           />
+        </div>
+
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-[2px] flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-tight">Strategy Library</span>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm ${state.referenceLibraryLoaded ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+              {state.referenceLibraryLoaded ? 'Built-in loaded' : 'Optional'}
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-500 leading-normal">
+            Injects 6 professional competitor strategy scripts as rich style guidelines during AI text generation.
+          </p>
+          <button
+            type="button"
+            onClick={() => onLoadBuiltInReferences(true)}
+            disabled={isLoadingReferences}
+            className="mb-1 px-2 py-1.5 bg-slate-900 disabled:bg-slate-300 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all"
+          >
+            {isLoadingReferences ? 'Loading References...' : 'Restore Built-in References'}
+          </button>
         </div>
 
         {state.stageStatuses['story_dna'] === 'locked' && (

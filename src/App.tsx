@@ -189,12 +189,44 @@ export default function App() {
     throw new Error("Maximum generation attempts reached.");
   };
 
-  // Load initial backup from IndexedDB to ensure no data is lost
+  const [isLoadingReferences, setIsLoadingReferences] = useState(false);
+
+  const handleLoadBuiltInReferences = async (force = false) => {
+    if (isLoadingReferences) return;
+    const current = stateRef.current;
+    if (!force && (current.referenceLibraryLoaded || current.competitors.trim())) return;
+
+    setIsLoadingReferences(true);
+    try {
+      const { loadBuiltInReferencePack } = await import('./lib/referenceLibrary');
+      const referencePack = await loadBuiltInReferencePack();
+      updateState({
+        competitors: referencePack,
+        referenceLibraryLoaded: true,
+      });
+    } catch (err: any) {
+      console.error('Failed to load built-in references:', err);
+      setWarningMessage(err.message || 'Failed to load built-in references.');
+      setTimeout(() => setWarningMessage(null), 5000);
+    } finally {
+      setIsLoadingReferences(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!state.referenceLibraryLoaded && !state.competitors.trim() && !isLoadingReferences) {
+      handleLoadBuiltInReferences(false);
+    }
+  }, [state.referenceLibraryLoaded, state.competitors, isLoadingReferences]);
+
   useEffect(() => {
     loadProjectState('studio_writer_project')
       .then((dbState) => {
         if (dbState && dbState.promptHistory) {
           console.log("Restored project state from IndexedDB backup.");
+          if (dbState.referenceLibraryLoaded === undefined) {
+            dbState.referenceLibraryLoaded = Boolean(dbState.competitors && dbState.competitors.trim());
+          }
           setState(dbState);
           stateRef.current = dbState;
         }
@@ -326,7 +358,7 @@ export default function App() {
     return { allowed: true };
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     const check = canProceedToStage(currentStageId);
     if (!check.allowed) {
       setWarningMessage(check.warning || 'Check previous stages.');
@@ -334,10 +366,11 @@ export default function App() {
       return;
     }
 
+    setIsGenerating(true);
+
     import('./lib/PromptBuilder').then(({ buildPrompt }) => {
       const promptUsed = buildPrompt(currentStageId, state);
       
-      setIsGenerating(true);
       fetchWithRetry('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -622,6 +655,7 @@ export default function App() {
       const { buildPartPrompt } = await import('./lib/PromptBuilder');
       const currentState = stateRef.current;
       const partNum = currentState.scriptParts[index].partNumber;
+      
       const promptUsed = buildPartPrompt(partNum, currentState);
       
       setIsGenerating(true);
@@ -806,6 +840,8 @@ export default function App() {
           updateState={updateState}
           onResetProject={handleResetProject}
           saveStatus={saveStatus}
+          onLoadBuiltInReferences={handleLoadBuiltInReferences}
+          isLoadingReferences={isLoadingReferences}
         />
         
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">

@@ -98,6 +98,7 @@ export interface ProjectState {
   language: string;
   targetLength: string;
   competitors: string;
+  referenceLibraryLoaded: boolean;
   styleDna: string;
   forbiddenElements: string;
   styleNotes: string;
@@ -7467,6 +7468,7 @@ export const INITIAL_STATE: ProjectState = {
   language: 'English',
   targetLength: '15-20 minutes',
   competitors: '',
+  referenceLibraryLoaded: false,
   styleDna: `# Одобренный ДНК Стиля (Style DNA) - Использовать всегда!
   
 ## 1. Ритм предложений (Sentence Rhythm)
