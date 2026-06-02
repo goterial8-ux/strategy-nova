@@ -238,7 +238,12 @@ async function handleGenerate(req: express.Request, res: express.Response) {
     const isSupervisor = type === "supervisor";
     
     let textOutput: string;
-    if (stageId === "script_writer" && process.env.SCRIPT_WRITER_PROVIDER === "anthropic") {
+    const shouldUseAnthropicScriptWriter =
+      !isSupervisor &&
+      stageId === "script_writer" &&
+      process.env.SCRIPT_WRITER_PROVIDER === "anthropic";
+
+    if (shouldUseAnthropicScriptWriter) {
       textOutput = await generateClaudeContent(prompt);
     } else {
       textOutput = await generateContent(prompt, isSupervisor, isSupervisor ? "supervisor" : stageId);

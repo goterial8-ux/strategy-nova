@@ -171,6 +171,9 @@ export default function App() {
             if (parsed.autopilotState.lastError === undefined) parsed.autopilotState.lastError = null;
             if (parsed.autopilotState.lastSupervisorReport === undefined) parsed.autopilotState.lastSupervisorReport = null;
           }
+          if (parsed.claudeLiteMode === undefined) {
+            parsed.claudeLiteMode = true;
+          }
         }
         return parsed;
       } catch (e) {

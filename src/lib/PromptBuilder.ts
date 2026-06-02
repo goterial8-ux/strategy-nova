@@ -35,24 +35,26 @@ Forbidden tone details to AVOID:
 - Technical reports, engineering lectures, academic explanations, raw physics explanations, sci-fi system manuals, dry technical analysis, over-explaining mechanics.
 - Do NOT use these scientific or technical terms unless absolutely necessary: structural, structural weak point, thermal signature, conductive, pressure system, optimized, resource loop, tactical analysis, calculated trajectory, energy source, mechanism efficiency, biological sample, facility, proctor, test subject, exoskeleton, plasma, laser, military armory, calculation, physics explanation.
 
-Instead, replace technical language with simple, visual natural survival language, focusing on what the character sees, what the character does, what changes on screen, and how allies/enemies react:
-- Bad: "Keima identified the structural weak point in the unstable coastal formation."
-- Good: "Keima saw one cracked stone holding the whole slope together. If that stone moved, the cliff would fall."
+Instead, replace technical language with simple, visual physical language, focusing on what the protagonist sees, what they do, what changes on screen, and how allies/enemies react:
+- Bad: "The protagonist identified the structural weak point in the unstable coastal formation."
+- Good: "I saw one cracked stone holding the whole slope together. If that stone moved, the cliff would fall."
 - Bad: "The thermal signature confirmed a subterranean heat source."
-- Good: "The camera caught a thin shimmer rising from the rocks. Something warm was hiding under the island."
+- Good: "A thin shimmer rose from the rocks. Something warm was hiding beneath."
 - Bad: "He calculated the optimal load distribution."
-- Good: "He tied the rope lower, shifted the weight, and the log finally rose without breaking his back."
+- Good: "I tied the rope lower, shifted the weight, and the log finally rose without breaking my back."
 - Bad: "The system created a sustainable resource loop."
-- Good: "Water dripped into the bottle by itself. Fish trapped themselves in the stones. For the first time, Keima could rest."
+- Good: "Water dripped into the bottle by itself. Food was secure. For the first time, I could rest."
 
 GENERATION / PROGRESSION SEQUENCE:
 Before writing any script part, structure your paragraph sequence to apply this rhythm:
-problem appears -> Keima notices one useful detail -> simple action -> visible result -> Ren reacts -> payoff lands -> new pressure appears.
+problem appears -> protagonist notices one useful detail -> simple action -> visible result -> rival/ally reacts -> payoff lands -> new pressure appears.
 
 Explanation constraints:
 - Keep explanations short.
 - Every technical idea must become a visual action within one or two sentences.
-- For island survival stories, use natural words: rope, tide, stones, shells, vines, wreckage, sailcloth, bottle, camera, sun, rain, reef, mud, cliff, cave, smoke, fish trap, shelter, raft, current, storm, footprints, broken yacht parts.
+- Follow the approved story contract, approved story plan, and current part scene cards.
+- Do not import setting, vocabulary, enemies, resources, names, or mechanics from another project.
+- Use only the current project’s approved setting, protagonist, resources, conflict, and progression logic.
 
 REPAIR RULE:
 - If a generated part has scientific or technical tone, discard that wording. Do not repair around the wrong vocabulary; rewrite it completely into visual human recap narration.
@@ -581,7 +583,7 @@ export function buildPartPrompt(
   partNumber: number,
   state: ProjectState,
 ): string {
-  if (state.claudeLiteMode) {
+  if (state.claudeLiteMode !== false) {
     return buildClaudeLitePartPrompt(partNumber, state);
   }
   const part = state.scriptParts.find((p) => p.partNumber === partNumber);
@@ -699,7 +701,7 @@ export function buildPartPrompt(
   );
 
   const forbiddenDriftBlock = `\n\n=== STRICT FORBIDDEN DRIFT WARNING ===
-Do not use sci-fi facility language. Do not write about tests, proctors, plasma batteries, exoskeletons, toxic trenches, military armories, lasers, or dungeon/facility survival unless explicitly present in the approved plan. This story is natural island survival using yacht wreckage, natural resources, camera analysis, tides, shelter, food, water, tools, human conflict, and practical strategy.`;
+Follow the approved story contract, approved story plan, and current part scene cards. Do not import settings, vocabulary, enemies, resources, names, or mechanics from another project. Use only the current project’s approved setting, protagonist, resources, conflict, and progression logic.`;
   stage5Prompt += forbiddenDriftBlock;
 
   const voiceLockBlock = `\n\n=== STRICT WRITER VOICE LOCK ===\n${SCRIPT_VOICE_RULES_CONTRACT}`;
@@ -935,9 +937,9 @@ I didn't waste breath arguing. I just pulled the canvas rucksack tighter against
 
 With a heavy thud, my feet landed in the wet sand. Ten feet out into the surf, a small cluster of boulders formed a natural rock barrier, calm and shielded from the violent tide. Inside that circle, seawater pooled, trapping three fat, silver mackerel. This was my first clean protein source in three days.
 
-Behind me, a voice sneered from the trees. It was Ren, still looking at me with the same smug, arrogant smirk he wore back at the shelter. "Outstanding plan, genius. You crawled down a dangerous cliff just to freeze on a wet beach."
+Behind me, a voice sneered from the trees. It was the rival, still looking at me with the same smug, arrogant smirk he wore back at the shelter. "Outstanding plan, genius. You crawled down a dangerous cliff just to freeze on a wet beach."
 
-I didn't answer his bait. I grabbed a sharp clam shell, sliced a long vine, and quickly wove a tight mesh fence across the rocky opening. When the tide pulled back, the water drained out completely, leaving the silver mackerel trapped and wriggling on the dry stones. Ren’s jaw went slack. His smug grin vanished instantly as he stared at the harvest in absolute silence.`;
+I didn't answer his bait. I grabbed a sharp clam shell, sliced a long vine, and quickly wove a tight mesh fence across the rocky opening. When the tide pulled back, the water drained out completely, leaving the silver mackerel trapped and wriggling on the dry stones. The rival's jaw went slack. His smug grin vanished instantly as he stared at the harvest in absolute silence.`;
 
   // 8. Minimal hard rules
   const minimalHardRules = `- All narrative blocks must be written strictly in English.
