@@ -249,6 +249,19 @@ export default function App() {
             dbState.marketResearch = '';
           }
           let needsUpdate = false;
+          if (dbState.autopilotState === undefined) {
+             dbState.autopilotState = {
+               enabled: false,
+               currentPartIndex: 0,
+               currentStep: 'generate',
+               retryAfterAt: null,
+               repairAttemptsByPart: {},
+               rateLimitAttempts: 0,
+               lastError: null,
+               lastSupervisorReport: null
+             };
+             needsUpdate = true;
+          }
           ['idea_market'].forEach(stage => {
             if (!(stage in dbState.supervisorReports)) {
               dbState.supervisorReports[stage] = null;
@@ -287,6 +300,7 @@ export default function App() {
     }
 
     const runAutopilotStep = async () => {
+      if (!stateRef.current.autopilotState?.enabled) return;
       autopilotRunningRef.current = true;
       try {
         const currentAP = stateRef.current.autopilotState;
@@ -460,10 +474,14 @@ export default function App() {
            setWarningMessage(`Autopilot stopped safely at Part ${currentPart?.partNumber || 1}. Reason: ${msg}`);
         }
       } finally {
-        if (!stateRef.current.autopilotState.enabled) {
-          setIsBatchGenerating(false);
-        }
         autopilotRunningRef.current = false;
+        if (!stateRef.current.autopilotState?.enabled) {
+          setIsBatchGenerating(false);
+        } else {
+          // If still enabled, schedule next evaluation tick instead of relying on state change
+          if (autopilotTimeoutRef.current) clearTimeout(autopilotTimeoutRef.current);
+          autopilotTimeoutRef.current = setTimeout(runAutopilotStep, 1000);
+        }
       }
     };
 
