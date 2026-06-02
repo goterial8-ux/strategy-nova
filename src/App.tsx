@@ -271,6 +271,206 @@ export default function App() {
       });
   }, []);
 
+  const autopilotTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autopilotRunningRef = useRef(false);
+
+  useEffect(() => {
+    // Determine if autopilot should run
+    if (!state.autopilotState?.enabled) {
+      if (autopilotTimeoutRef.current) clearTimeout(autopilotTimeoutRef.current);
+      setIsBatchGenerating(false);
+      return;
+    }
+    
+    if (autopilotRunningRef.current) {
+      return;
+    }
+
+    const runAutopilotStep = async () => {
+      autopilotRunningRef.current = true;
+      try {
+        const currentAP = stateRef.current.autopilotState;
+      if (!currentAP || !currentAP.enabled) return;
+
+      const { currentPartIndex, currentStep, retryAfterAt, repairAttemptsByPart, rateLimitAttempts } = currentAP;
+      const parts = stateRef.current.scriptParts;
+
+      if (currentPartIndex >= parts.length) {
+        // Autopilot finished all parts
+        const allApproved = parts.every(p => p.status === 'approved');
+        if (allApproved) {
+           updateState({
+             autopilotState: { ...currentAP, enabled: false, currentStep: 'approved' }
+           });
+           handleAssembleScript();
+        } else {
+           updateState({
+             autopilotState: { ...currentAP, enabled: false, currentStep: 'blocked', lastError: "Some parts are not approved." }
+           });
+           setWarningMessage("Autopilot stopped. Some parts could not be approved.");
+        }
+        return;
+      }
+
+      const currentPart = parts[currentPartIndex];
+
+      if (currentStep === 'cooldown') {
+        if (retryAfterAt && Date.now() >= retryAfterAt) {
+           updateState({
+             autopilotState: { ...currentAP, currentStep: currentPart.status === 'not_started' || !currentPart.draftText ? 'generate' : 'check', retryAfterAt: null }
+           });
+        }
+        return;
+      }
+
+      if (stopRequestedRef.current) {
+        updateState({
+           autopilotState: { ...currentAP, enabled: false, currentStep: 'blocked', lastError: "Stopped by user." }
+        });
+        setWarningMessage(`Autopilot stopped safely at Part ${currentPart.partNumber}.`);
+        return;
+      }
+
+      setIsBatchGenerating(true);
+      
+      if (currentStep === 'generate') {
+        if (!currentPart.draftText || currentPart.draftText.length === 0) {
+             const success = await handleGeneratePart(currentPartIndex);
+             if (!success) throw new Error("Generation returned false");
+          }
+          
+          updateState({
+            autopilotState: { ...currentAP, currentStep: 'check' }
+          });
+          // Batch delay after gen
+          await new Promise(resolve => setTimeout(resolve, 30000));
+        } else if (currentStep === 'check' || currentStep === 'recheck') {
+          const { buildSupervisorPrompt } = await import('./lib/PromptBuilder');
+          const promptUsed = buildSupervisorPrompt('script_writer', stateRef.current.scriptParts[currentPartIndex].draftText, stateRef.current);
+          
+          const analyzeData = await fetchWithRetry('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: promptUsed, type: 'supervisor' })
+          });
+          
+          let aiReport = analyzeData.parsed as SupervisorReport;
+          if (!aiReport) {
+             throw new Error("AI supervisor report cannot be parsed");
+          }
+
+          const { validateScriptText } = await import('./lib/scriptValidation');
+          const localScriptVal = validateScriptText(stateRef.current.scriptParts[currentPartIndex].draftText, 'script_part');
+          import('./lib/stageValidation').then((mod) => {
+            const { mergeSupervisorReportWithValidation } = mod as any;
+            if (typeof mergeSupervisorReportWithValidation !== 'undefined') {
+              // Not used directly here since types changed, we do it inline:
+            }
+          });
+
+          // Custom merge since we don't safely expose `mergeSupervisorReportWithValidation` easily from App, actually we do via import:
+          const validationMod = await import('./lib/scriptValidation');
+          let mergedReport = validationMod.mergeSupervisorReportWithValidation(aiReport, localScriptVal);
+
+          const isLocalOk = localScriptVal.ok;
+          const isAIOk = aiReport.status === 'ok' && aiReport.canContinue;
+
+          if (isLocalOk && isAIOk) {
+            updateScriptPart(currentPartIndex, { status: 'approved', supervisorReport: mergedReport });
+            updateState({
+              autopilotState: { ...stateRef.current.autopilotState, currentStep: 'approved', lastSupervisorReport: mergedReport }
+            });
+          } else {
+             // Needs repair
+             mergedReport.status = 'needs_serious_repair';
+             mergedReport.canContinue = false;
+             updateScriptPart(currentPartIndex, { status: 'needs_repair', supervisorReport: mergedReport });
+             updateState({
+               autopilotState: { ...stateRef.current.autopilotState, currentStep: 'repair', lastSupervisorReport: mergedReport }
+             });
+          }
+        } else if (currentStep === 'repair') {
+          const attempts = repairAttemptsByPart[currentPartIndex] || 0;
+          if (attempts >= 3) {
+            updateState({
+              autopilotState: { ...currentAP, enabled: false, currentStep: 'blocked', lastError: `Max repair attempts (3) exceeded for Part ${currentPart.partNumber}.` }
+            });
+            setWarningMessage(`Autopilot stopped. Part ${currentPart.partNumber} could not be repaired after 3 attempts.`);
+            setIsBatchGenerating(false);
+            return;
+          }
+
+          const { buildRepairPrompt } = await import('./lib/PromptBuilder');
+          const repPrompt = buildRepairPrompt('script_writer', currentPart.draftText, currentAP.lastSupervisorReport as SupervisorReport, stateRef.current);
+          const repairData = await fetchWithRetry('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: repPrompt, type: 'text', stageId: 'script_writer' })
+          });
+          
+          const newText = repairData.text;
+          const patch = getScriptPartValidationPatch(newText);
+          updateScriptPart(currentPartIndex, { 
+            status: 'generated', 
+            draftText: newText, 
+            ...patch
+          });
+
+          updateState({
+            autopilotState: { 
+              ...stateRef.current.autopilotState, 
+              currentStep: 'recheck',
+              repairAttemptsByPart: { ...repairAttemptsByPart, [currentPartIndex]: attempts + 1 }
+            }
+          });
+          // Batch delay after repair
+          await new Promise(resolve => setTimeout(resolve, 30000));
+        } else if (currentStep === 'approved') {
+           updateState({
+             autopilotState: { ...currentAP, currentStep: 'generate', currentPartIndex: currentPartIndex + 1, rateLimitAttempts: 0 }
+           });
+           // Batch delay after approve
+           await new Promise(resolve => setTimeout(resolve, 60000));
+        }
+      } catch (err: any) {
+        const currentAP = stateRef.current.autopilotState;
+        const currentPart = stateRef.current.scriptParts[currentAP?.currentPartIndex || 0];
+        const msg = String(err.message || err);
+        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+           const limits = (currentAP?.rateLimitAttempts || 0) + 1;
+           let backoff = 60000;
+           if (limits === 2) backoff = 90000;
+           if (limits >= 3) backoff = 180000;
+
+           console.log("Autopilot caught 429 rate limit. Cooling down for", backoff, "ms");
+           setWarningMessage(`Quota cooling down. Work is saved. Autopilot will retry automatically in ${backoff/1000}s.`);
+           
+           if (currentAP) {
+             updateState({
+               autopilotState: { ...currentAP, currentStep: 'cooldown', retryAfterAt: Date.now() + backoff, rateLimitAttempts: limits, lastError: msg }
+             });
+           }
+        } else {
+           console.error("Autopilot error:", err);
+           if (currentAP) {
+             updateState({
+               autopilotState: { ...currentAP, enabled: false, currentStep: 'blocked', lastError: msg }
+             });
+           }
+           setWarningMessage(`Autopilot stopped safely at Part ${currentPart?.partNumber || 1}. Reason: ${msg}`);
+        }
+      } finally {
+        if (!stateRef.current.autopilotState.enabled) {
+          setIsBatchGenerating(false);
+        }
+        autopilotRunningRef.current = false;
+      }
+    };
+
+    autopilotTimeoutRef.current = setTimeout(runAutopilotStep, 1000);
+
+  }, [state.autopilotState]);
+    
   useEffect(() => {
     setSaveStatus('saving');
     
@@ -825,45 +1025,40 @@ export default function App() {
   };
 
   const handleGenerateAllParts = async () => {
-    setIsBatchGenerating(true);
-    setStopRequested(false);
-    stopRequestedRef.current = false;
-
-    // We use a local index to avoid issues with stale state in the loop
-    for (let i = 0; i < stateRef.current.scriptParts.length; i++) {
-        if (stopRequestedRef.current) break;
-        
-        // Use stateRef.current to get the actual up-to-date parts on every loop iteration
-        const currentParts = stateRef.current.scriptParts; 
-        if (!currentParts[i].draftText || currentParts[i].draftText.length === 0) {
-            const success = await handleGeneratePart(i);
-            if (!success || stopRequestedRef.current) break;
-        }
-
-        const approved = await handleCheckPart(i);
-        if (!approved) {
-           setWarningMessage(`Batch stopped. Part ${currentParts[i].partNumber} could not be approved.`);
-           setTimeout(() => setWarningMessage(null), 5000);
-           break;
-        }
-        if (stopRequestedRef.current) break;
-
-        // If there are more parts to generate, perform a safe back-off delay of 4 seconds to prevent 429 RPM limit
-        if (i < stateRef.current.scriptParts.length - 1) {
-            console.log("Waiting 4 seconds before the next part generation to avoid 429 rate limits...");
-            setWarningMessage("Соблюдаем паузу перед следующей частью для обхода лимитов...");
-            await new Promise((resolve) => setTimeout(resolve, 4000));
-            setWarningMessage(null);
-        }
+    const currentAP = stateRef.current.autopilotState;
+    if (!currentAP) return;
+    
+    // Find the first non-approved part
+    const firstNotApproved = stateRef.current.scriptParts.findIndex(p => p.status !== 'approved');
+    if (firstNotApproved === -1) {
+       setWarningMessage("All parts are already approved.");
+       setTimeout(() => setWarningMessage(null), 3000);
+       return;
     }
 
-    setIsBatchGenerating(false);
     setStopRequested(false);
     stopRequestedRef.current = false;
+    setIsBatchGenerating(true);
+
+    updateState({
+      autopilotState: { 
+        ...currentAP, 
+        enabled: true, 
+        currentPartIndex: firstNotApproved, 
+        currentStep: stateRef.current.scriptParts[firstNotApproved].draftText ? 'check' : 'generate',
+        lastError: null,
+        retryAfterAt: null
+      }
+    });
   };
 
   const handleStopBatchGeneration = () => {
     setStopRequested(true);
+    if (stateRef.current.autopilotState) {
+       updateState({
+         autopilotState: { ...stateRef.current.autopilotState, enabled: false, currentStep: 'blocked', lastError: "Stopped by user." }
+       });
+    }
   };
 
   const handleClearAllParts = () => {
@@ -1062,6 +1257,7 @@ export default function App() {
             onCheckPart={handleCheckPart}
             onAssembleScript={handleAssembleScript}
             hasSupervisorReport={!!state.supervisorReports[currentStageId]}
+            autopilotState={state.autopilotState}
           />
           
           <SupervisorPanel 

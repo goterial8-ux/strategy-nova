@@ -98,6 +98,19 @@ export interface PromptHistoryEntry {
   lockedStatus: boolean;
 }
 
+export type AutopilotStep = 'generate' | 'check' | 'repair' | 'recheck' | 'cooldown' | 'approved' | 'blocked';
+
+export interface AutopilotState {
+  enabled: boolean;
+  currentPartIndex: number;
+  currentStep: AutopilotStep;
+  retryAfterAt: number | null;
+  repairAttemptsByPart: Record<number, number>;
+  rateLimitAttempts: number;
+  lastError: string | null;
+  lastSupervisorReport: SupervisorReport | null;
+}
+
 export interface ProjectState {
   projectTitle: string;
   ideaMode: IdeaMode;
@@ -133,6 +146,7 @@ export interface ProjectState {
   promptRegistry: PromptRegistry;
   promptHistory: PromptHistoryEntry[];
   useAvatars: boolean;
+  autopilotState: AutopilotState;
 }
 
 export const STAGES: { id: StageId; name: string }[] = [
@@ -7656,4 +7670,14 @@ export const INITIAL_STATE: ProjectState = {
   promptRegistry: INITIAL_PROMPT_REGISTRY,
   promptHistory: [],
   useAvatars: true,
+  autopilotState: {
+    enabled: false,
+    currentPartIndex: 0,
+    currentStep: 'generate',
+    retryAfterAt: null,
+    repairAttemptsByPart: {},
+    rateLimitAttempts: 0,
+    lastError: null,
+    lastSupervisorReport: null
+  }
 };

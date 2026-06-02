@@ -1,5 +1,5 @@
 import React from 'react';
-import { StageId, StageStatus, CleanExportSettings, ScriptPart } from '../types';
+import { StageId, StageStatus, CleanExportSettings, ScriptPart, AutopilotState } from '../types';
 import { Check, Edit3, RefreshCw, Lock, Sparkles, Download } from 'lucide-react';
 import { ScriptWriterPanel } from './ScriptWriterPanel';
 import { validateScriptText, validationIssueSummary } from '../lib/scriptValidation';
@@ -99,6 +99,7 @@ interface RightPanelProps {
   onCheckPart: (index: number) => void;
   onAssembleScript: () => void;
   hasSupervisorReport?: boolean;
+  autopilotState?: AutopilotState;
 }
 
 export function RightPanel({ 
@@ -124,7 +125,8 @@ export function RightPanel({
   isBatchGenerating,
   onCheckPart,
   onAssembleScript,
-  hasSupervisorReport
+  hasSupervisorReport,
+  autopilotState
 }: RightPanelProps) {
   
   const isExportStage = currentStageId === 'clean_export';
@@ -517,6 +519,7 @@ export function RightPanel({
                 setActiveTab('full');
              }}
              stageStatus={stageStatus}
+             autopilotState={autopilotState}
           />
         ) : (
           <div className="flex-1 relative border border-slate-200 bg-white overflow-hidden group shadow-sm mt-4 flex flex-col">

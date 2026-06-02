@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScriptPart, StageStatus } from '../types';
+import { ScriptPart, StageStatus, AutopilotState } from '../types';
 import { Check, Edit3, Trash2, RefreshCw, Layers, Play, Square, Eraser, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ScriptWriterPanelProps {
@@ -15,6 +15,7 @@ interface ScriptWriterPanelProps {
   onCheckPart: (index: number) => void;
   onAssembleScript: () => void;
   stageStatus: StageStatus;
+  autopilotState?: AutopilotState;
 }
 
 export function ScriptWriterPanel({
@@ -29,7 +30,8 @@ export function ScriptWriterPanel({
   isBatchGenerating,
   onCheckPart,
   onAssembleScript,
-  stageStatus
+  stageStatus,
+  autopilotState
 }: ScriptWriterPanelProps) {
 
   const [expandedParts, setExpandedParts] = React.useState<Record<number, boolean>>({});
@@ -176,14 +178,31 @@ export function ScriptWriterPanel({
                 </label>
               </h3>
               <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 border rounded-sm ${
-                  part.status === 'locked' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                  part.status === 'approved' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                  part.status === 'needs_repair' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                  'bg-slate-50 text-slate-500 border-slate-200'
-                }`}>
-                  {part.status.replace('_', ' ')}
-                </span>
+                {(() => {
+                  let badgeText = part.status.replace('_', ' ');
+                  let badgeClass = 'bg-slate-50 text-slate-500 border-slate-200';
+                  
+                  if (autopilotState && autopilotState.enabled && autopilotState.currentPartIndex === idx) {
+                    badgeText = autopilotState.currentStep === 'cooldown' ? 'quota cooldown' : autopilotState.currentStep;
+                    badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse';
+                  } else {
+                    if (part.status === 'locked') {
+                      badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    } else if (part.status === 'approved') {
+                      badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                    } else if (part.status === 'needs_repair') {
+                      badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    } else if (part.status === 'not_started' && autopilotState && autopilotState.enabled && idx > autopilotState.currentPartIndex) {
+                      badgeText = 'waiting';
+                    }
+                  }
+
+                  return (
+                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 border rounded-sm ${badgeClass}`}>
+                      {badgeText}
+                    </span>
+                  );
+                })()}
                 
                 <div className="flex items-center gap-1 ml-2">
                   {part.status !== 'locked' && (
@@ -235,11 +254,15 @@ export function ScriptWriterPanel({
                     placeholder={`Draft content for Part ${part.partNumber}...`}
                     disabled={part.status === 'locked'}
                   />
-                  {isBatchGenerating && !part.draftText && idx === parts.findIndex(p => !p.draftText) && (
+                  {((isBatchGenerating && !part.draftText && idx === parts.findIndex(p => !p.draftText)) || (autopilotState?.enabled && autopilotState.currentPartIndex === idx)) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px] z-10">
                       <div className="flex items-center gap-3 bg-white px-6 py-3 shadow-xl border border-slate-200 rounded-full">
                         <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">Writing Part {part.partNumber}...</span>
+                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">
+                          {autopilotState?.enabled && autopilotState.currentPartIndex === idx 
+                            ? `${autopilotState.currentStep} Part ${part.partNumber}...`
+                            : `Writing Part ${part.partNumber}...`}
+                        </span>
                       </div>
                     </div>
                   )}
