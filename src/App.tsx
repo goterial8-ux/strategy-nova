@@ -557,8 +557,7 @@ export default function App() {
             localScriptVal,
           );
 
-          const isLocalOk =
-            localScriptVal.ok && localScriptVal.warnings.length === 0;
+          const isLocalOk = localScriptVal.ok;
           const isAIOk = aiReport.status === "ok" && aiReport.canContinue;
 
           if (isLocalOk && isAIOk) {
@@ -574,8 +573,12 @@ export default function App() {
               },
             });
           } else {
-            const nextStep =
-              mergedReport.status === "needs_small_repair"
+            const hasHardDrift = localScriptVal.failures.some(
+              (f) => f.code === "hard_story_drift",
+            );
+            const nextStep = hasHardDrift
+              ? "rebuild"
+              : mergedReport.status === "needs_small_repair"
                 ? "soft_cleanup"
                 : "repair";
             mergedReport.canContinue = false;
