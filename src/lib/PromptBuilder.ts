@@ -557,11 +557,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
         "{{GLOBAL_RULES}}",
         state.promptRegistry.globalRulesPrompt,
       );
-      const stage5SupervisorNotes =
-        state.promptHistory
-          .filter((h) => h.stageId === "script_writer" && h.supervisorStatus)
-          .map((h) => h.outputPreview)
-          .join("\\n") || "None";
+      const stage5SupervisorNotes = "None";
       stage5Prompt = stage5Prompt.replaceAll(
         "{{SUPERVISOR_NOTES}}",
         stage5SupervisorNotes,
@@ -633,7 +629,7 @@ export function buildPartPrompt(
   );
 
   const previousParts = state.scriptParts.filter(
-    (p) => p.partNumber < partNumber && p.draftText && p.draftText.length > 0,
+    (p) => p.partNumber < partNumber && p.status === "approved" && p.draftText && p.draftText.length > 0,
   );
   const previousSummary =
     previousParts.length > 0
@@ -693,11 +689,7 @@ export function buildPartPrompt(
     state.promptRegistry.globalRulesPrompt,
   );
 
-  const stage5SupervisorNotes =
-    state.promptHistory
-      .filter((h) => h.stageId === "script_writer" && h.supervisorStatus)
-      .map((h) => h.outputPreview)
-      .join("\\n") || "None";
+  const stage5SupervisorNotes = "None";
   stage5Prompt = stage5Prompt.replaceAll(
     "{{SUPERVISOR_NOTES}}",
     stage5SupervisorNotes,
@@ -842,13 +834,37 @@ export function buildRebuildPrompt(
   const partTitle = part?.partTitle || `Part ${partNumber}`;
   const partPrompt = buildPartPrompt(partNumber, state);
 
+  const reportString = JSON.stringify(report || {}).toLowerCase();
+  const hasDrift = [
+    "drift",
+    "genre",
+    "setting",
+    "premise",
+    "world",
+    "sci-fi",
+    "facility",
+    "toxic trench",
+    "proctors",
+    "proctor",
+    "plasma battery",
+    "plasma batteries",
+    "exoskeleton",
+    "exoskeletons",
+    "dungeon/facility",
+    "hard_story_drift",
+  ].some((kw) => reportString.includes(kw));
+
+  const cleanReportText = hasDrift
+    ? "Previous attempt drifted away from the locked premise. Rebuild from approved plan and scene cards only."
+    : JSON.stringify(report, null, 2);
+
   return `=== FULL PART REBUILD ===
 The previous attempt completely failed, drifted into the wrong genre/sci-fi terms, or violated formatting rules.
 We are completely throwing away that failed version. Do NOT base your output on any previous draft of this part. 
 You must synthesize a completely new version from scratch using ONLY the locked raw idea, approved Story DNA, approved Story Plan, and approved Scene Cards.
 
 SUPERVISOR REJECTION REPORT:
-${JSON.stringify(report, null, 2)}
+${cleanReportText}
 
 STRICT REBUILD INSTRUCTIONS:
 1. Discard the failed version's text and vocabulary completely.

@@ -109,6 +109,20 @@ export function ScriptWriterPanel({
   const allApproved =
     parts.length > 0 && parts.every((p) => p.status === "approved");
 
+  const hasContaminatedParts = parts.some((p) => {
+    const text = (p.draftText || "").toLowerCase();
+    const report = JSON.stringify(p.supervisorReport || {}).toLowerCase();
+    const driftKeywords = [
+      "facility",
+      "toxic trench",
+      "proctor",
+      "plasma battery",
+      "exoskeleton",
+      "dungeon/facility",
+    ];
+    return driftKeywords.some((kw) => text.includes(kw) || report.includes(kw));
+  });
+
   return (
     <div className="flex-1 overflow-y-auto flex flex-col gap-4 mt-4 relative">
       {/* Script Progress Toolbar */}
@@ -179,6 +193,15 @@ export function ScriptWriterPanel({
           />
         </div>
       </div>
+
+      {hasContaminatedParts && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 text-xs font-medium rounded-sm flex items-start gap-2.5 shadow-sm mx-1">
+          <span className="text-sm shrink-0">⚠️</span>
+          <div>
+            Current script parts were generated before the latest prompt rules. Clear or rebuild them before continuing.
+          </div>
+        </div>
+      )}
 
       {parts.map((part, idx) => {
         const expanded = isExpanded(idx);
