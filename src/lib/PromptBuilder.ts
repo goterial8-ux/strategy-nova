@@ -117,7 +117,7 @@ function authorialStyleBlock(): string {
 export function buildPrompt(stageId: StageId, state: ProjectState): string {
   let prompt = '';
   
-  if (stageId !== 'raw_idea' && stageId !== 'story_dna' && stageId !== 'story_plan') {
+  if (stageId !== 'idea_market' && stageId !== 'raw_idea' && stageId !== 'story_dna' && stageId !== 'story_plan') {
     prompt += `=== GLOBAL RULES ===\n${state.promptRegistry.globalRulesPrompt}\n\n`;
     
     if (state.styleDna) {
@@ -145,11 +145,16 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
   prompt += `\n=== STAGE TASK ===\n`;
   
   switch (stageId) {
+    case 'idea_market':
+      let stage0Prompt = state.promptRegistry.stageZeroIdeaMarketPrompt || '';
+      stage0Prompt = stage0Prompt.replaceAll('{{GLOBAL_RULES}}', state.promptRegistry.globalRulesPrompt);
+      prompt += stage0Prompt + `\n\n` + (state.promptRegistry.stageZeroIdeaMarketExampleResponse || '');
+      break;
+
     case 'raw_idea': 
       let stage1Prompt = state.promptRegistry.stageOneRawIdeaPrompt;
       stage1Prompt = stage1Prompt.replaceAll('{{PROJECT_TITLE}}', state.projectTitle || 'None');
       stage1Prompt = stage1Prompt.replaceAll('{{RAW_IDEA}}', state.rawIdea || 'None');
-      stage1Prompt = stage1Prompt.replaceAll('{{GENRE}} font-bold', state.genre || 'None'); // Workaround for some replacers
       stage1Prompt = stage1Prompt.replaceAll('{{GENRE}}', state.genre || 'None');
       stage1Prompt = stage1Prompt.replaceAll('{{OUTPUT_LANGUAGE}}', 'Russian');
       stage1Prompt = stage1Prompt.replaceAll('{{TARGET_LENGTH}}', state.targetLength || 'None');

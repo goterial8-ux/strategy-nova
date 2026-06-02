@@ -2,6 +2,7 @@ import React from 'react';
 import { StageId, StageStatus, CleanExportSettings, ScriptPart } from '../types';
 import { Check, Edit3, RefreshCw, Lock, Sparkles, Download } from 'lucide-react';
 import { ScriptWriterPanel } from './ScriptWriterPanel';
+import { validateScriptText, validationIssueSummary } from '../lib/scriptValidation';
 
 export function generateCleanScript(scriptParts: ScriptPart[], exportSettings: CleanExportSettings): string {
   if (!scriptParts || scriptParts.length === 0) return '';
@@ -129,6 +130,9 @@ export function RightPanel({
 
   const [activeTab, setActiveTab] = React.useState<'parts' | 'full'>('parts');
   const [copied, setCopied] = React.useState(false);
+  const [cleanExportValidation, setCleanExportValidation] = React.useState<any>(null);
+
+  const allPartsApproved = scriptParts && scriptParts.length > 0 && scriptParts.every(p => p.status === 'approved');
 
   React.useEffect(() => {
     setActiveTab('parts');
@@ -141,9 +145,16 @@ export function RightPanel({
   const handleDownload = () => {
     const text = generateCleanScript(scriptParts, exportSettings);
     if (!text) {
-      alert("Сценарий пуст! Пожалуйста, сначала напишите части сценария.");
+      alert("Script is empty! Please write script parts first.");
       return;
     }
+    const validation = validateScriptText(text, 'clean_export');
+    if (!validation.ok) {
+      setCleanExportValidation(validation);
+      alert("Cannot export: Validation failed. See details on the screen.");
+      return;
+    }
+    setCleanExportValidation(null);
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -158,6 +169,13 @@ export function RightPanel({
   const handleCopyToClipboard = () => {
     const text = generateCleanScript(scriptParts, exportSettings);
     if (!text) return;
+    const validation = validateScriptText(text, 'clean_export');
+    if (!validation.ok) {
+      setCleanExportValidation(validation);
+      alert("Cannot copy: Validation failed. See details on the screen.");
+      return;
+    }
+    setCleanExportValidation(null);
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -237,7 +255,8 @@ export function RightPanel({
                   {stageStatus !== 'locked' && (
                     <button 
                       onClick={onApproveAndLock}
-                      className="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 border-none text-xs font-semibold transition-all shadow-sm"
+                      disabled={!allPartsApproved}
+                      className="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 border-none text-xs font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Approve & Lock Full Script
                     </button>
@@ -290,14 +309,18 @@ export function RightPanel({
             </button>
             <button
               onClick={() => {
-                onAssembleScript();
-                setActiveTab('full');
+                if (allPartsApproved) {
+                  onAssembleScript();
+                  setActiveTab('full');
+                }
               }}
-              className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+              disabled={!allPartsApproved}
+              title={!allPartsApproved ? "All parts must be 'approved' to assemble." : "Assemble the full script"}
+              className={`px-4 py-3 text-[10px] uppercase tracking-wider border-b-2 transition-all ${
                 activeTab === 'full' 
                   ? 'border-slate-950 text-slate-950 font-black' 
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-              }`}
+              } ${!allPartsApproved ? 'opacity-50 cursor-not-allowed' : 'font-bold cursor-pointer'}`}
             >
               📝 Full Assembled Script ({stageContent ? stageContent.length : 0} chars)
             </button>
@@ -452,6 +475,21 @@ export function RightPanel({
                   </button>
                 </div>
               </div>
+              
+              {cleanExportValidation && !cleanExportValidation.ok && (
+                <div className="p-4 bg-rose-50 border-b border-rose-200 flex flex-col gap-2 shrink-0">
+                  <h4 className="text-xs font-bold text-rose-700 uppercase tracking-wider">Export Validation Failed</h4>
+                  <ul className="text-xs text-rose-600 list-disc list-inside space-y-1">
+                    {cleanExportValidation.failures.slice(0, 5).map((f: any, i: number) => (
+                      <li key={i}><strong>[{f.code}]</strong> {f.message}</li>
+                    ))}
+                    {cleanExportValidation.failures.length > 5 && (
+                      <li>...and {cleanExportValidation.failures.length - 5} more issues.</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              
               <textarea
                 readOnly
                 className="flex-1 w-full h-full p-6 text-[13px] text-slate-700 leading-relaxed font-sans bg-slate-50/50 resize-none focus:outline-none overflow-y-auto"

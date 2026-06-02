@@ -43,12 +43,31 @@ export function LeftPanel({ state, updateState, onResetProject, saveStatus, onLo
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold text-slate-600">Raw Idea</label>
+          <div className="flex bg-slate-100 p-1 rounded-sm border border-slate-200">
+            <button
+              onClick={() => updateState({ ideaMode: 'develop_raw_idea' })}
+              className={`flex-1 text-[11px] font-bold py-1.5 rounded-sm transition-all ${state.ideaMode === 'develop_raw_idea' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+            >
+              My Idea
+            </button>
+            <button
+              onClick={() => updateState({ ideaMode: 'generate_from_references' })}
+              className={`flex-1 text-[11px] font-bold py-1.5 rounded-sm transition-all ${state.ideaMode === 'generate_from_references' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+            >
+              Idea Lab
+            </button>
+          </div>
+          
+          <label className="text-[11px] font-semibold text-slate-600 mt-2">
+            {state.ideaMode === 'develop_raw_idea' ? 'Raw Idea' : 'Seed / Direction (Optional)'}
+          </label>
           <textarea
             className="bg-white border border-slate-200 rounded-[2px] px-3 py-2 text-[13px] text-slate-900 focus:outline-none focus:border-blue-500 min-h-24 resize-y leading-relaxed"
             value={state.rawIdea}
             onChange={e => updateState({ rawIdea: e.target.value })}
-            placeholder="A billionaire CEO goes undercover as a janitor, gets mistreated by a rival manager, but eventually faces them down with his black card..."
+            placeholder={state.ideaMode === 'develop_raw_idea' 
+              ? "A billionaire CEO goes undercover as a..." 
+              : "E.g., Something about a medical genius..."}
           />
         </div>
         

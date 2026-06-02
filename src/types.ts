@@ -1,4 +1,5 @@
 export type StageId =
+  | 'idea_market'
   | 'raw_idea'
   | 'style_analyzer'
   | 'story_dna'
@@ -6,6 +7,8 @@ export type StageId =
   | 'scene_cards'
   | 'script_writer'
   | 'clean_export';
+
+export type IdeaMode = 'develop_raw_idea' | 'generate_from_references';
 
 export type StageStatus =
   | 'not_started'
@@ -48,6 +51,7 @@ export interface ScriptPart {
   hasGenerationResidue: boolean;
   hasDuplicateBlocks: boolean;
   avatarCount: number;
+  validationIssues?: string[];
 }
 
 export interface CleanExportSettings {
@@ -61,6 +65,8 @@ export interface CleanExportSettings {
 
 export interface PromptRegistry {
   globalRulesPrompt: string;
+  stageZeroIdeaMarketPrompt: string;
+  stageZeroIdeaMarketExampleResponse: string;
   aiSupervisorPrompt: string;
   stageOneRawIdeaPrompt: string;
   stageOneExampleResponse: string;
@@ -94,6 +100,8 @@ export interface PromptHistoryEntry {
 
 export interface ProjectState {
   projectTitle: string;
+  ideaMode: IdeaMode;
+  marketResearch: string;
   genre: string;
   language: string;
   targetLength: string;
@@ -128,6 +136,7 @@ export interface ProjectState {
 }
 
 export const STAGES: { id: StageId; name: string }[] = [
+  { id: 'idea_market', name: 'Idea Market' },
   { id: 'raw_idea', name: 'Raw Idea' },
   { id: 'style_analyzer', name: 'Style Analyzer' },
   { id: 'story_dna', name: 'Story DNA' },
@@ -138,6 +147,14 @@ export const STAGES: { id: StageId; name: string }[] = [
 ];
 
 export const INITIAL_PROMPT_REGISTRY: PromptRegistry = {
+  stageZeroIdeaMarketPrompt: `=== STAGE ZERO: IDEA MARKET ===
+Analyze raw idea if provided.
+Analyze competitor/reference style as abstract market DNA.
+Generate six to eight original idea candidates if ideaMode is generate_from_references.
+Pick recommended idea.
+Output "Pasteable Raw Idea For Stage One".
+Never copy competitor titles, plots, scenes, names, powers, worlds, or unique twists.`,
+  stageZeroIdeaMarketExampleResponse: `Here are 6 recommended ideas...`,
   globalRulesPrompt: `=== UNIVERSAL DRIFT PREVENTION ===
 These are silent quality guardrails, not a story formula.
 They must not force every story into investigation, court, documents, military, business, romance, system, magic, or any other template.
@@ -3415,9 +3432,9 @@ These rules are mandatory for the final script.
 
 Normal narration and dialogue paragraphs:
 
-- Every non-avatar paragraph in the final script must be strictly between ninety and two hundred characters including spaces.
-- No normal paragraph may be shorter than ninety characters.
-- No normal paragraph may be longer than two hundred characters.
+- Every non-avatar paragraph in the final script must be strictly between one hundred twenty and two hundred twenty characters including spaces.
+- No normal paragraph may be shorter than one hundred twenty characters.
+- No normal paragraph may be longer than two hundred twenty characters.
 - If a sentence is too short, Stage Five must merge it naturally with nearby action, context, reaction, or emotional movement.
 - If a paragraph is too long, Stage Five must split it naturally without damaging rhythm.
 - This applies to narration and dialogue paragraphs unless the user explicitly changes the rule.
@@ -3464,7 +3481,7 @@ Script Writer enforcement:
 
 - Stage Five must actively enforce the paragraph character rule.
 - Stage Five must count or estimate paragraph length before approving a part.
-- Stage Five must not mark a script part complete if normal paragraphs violate the ninety to two hundred character rule.
+- Stage Five must not mark a script part complete if normal paragraphs violate the one hundred twenty to two hundred twenty character rule.
 - Stage Five must not mark a script part complete if avatar count or avatar length is invalid.
 
 AI Supervisor enforcement:
@@ -3842,7 +3859,7 @@ Why Escalation Is Logical:
 Nineteen. SCRIPT FORMATTING CONTRACT FOR STAGE FOUR AND STAGE FIVE
 
 Normal Paragraph Rule:
-Every non-avatar final script paragraph must be strictly between ninety and two hundred characters including spaces.
+Every non-avatar final script paragraph must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 Avatar Rule:
 If enabled, the final script must contain exactly three avatar commentary blocks total. Each avatar body must be around three hundred to four hundred characters excluding the [AVATAR] tag.
@@ -3983,7 +4000,7 @@ Avatar Commentary Plan:
 Enabled. Exactly three avatar commentary slots total.
 
 Final Script Paragraph Rule:
-Every non-avatar final script paragraph must be strictly between ninety and two hundred characters including spaces.
+Every non-avatar final script paragraph must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 Final Script Avatar Rule:
 Exactly three avatar blocks total. Each avatar body must be around three hundred to four hundred characters excluding the [AVATAR] tag.
@@ -4703,7 +4720,7 @@ Every practical success makes the settlement more visible, valuable, and threate
 Nineteen. SCRIPT FORMATTING CONTRACT FOR STAGE FOUR AND STAGE FIVE
 
 Normal Paragraph Rule:
-Every non-avatar final script paragraph must be strictly between ninety and two hundred characters including spaces.
+Every non-avatar final script paragraph must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 Avatar Rule:
 If enabled, the final script must contain exactly three avatar commentary blocks total. Each avatar body must be around three hundred to four hundred characters excluding the [AVATAR] tag.
@@ -4796,7 +4813,7 @@ Avatar slots:
 Exactly three: Part Four, Part Seven, Part Nine.
 
 Paragraph rules:
-Final script non-avatar paragraphs must be strictly between ninety and two hundred characters including spaces.
+Final script non-avatar paragraphs must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 Avatar count and length rules:
 Exactly three avatar blocks. Each avatar body around three hundred to four hundred characters excluding the [AVATAR] tag.
@@ -5386,7 +5403,7 @@ Stage Four must pass the Script Formatting Contract forward to Stage Five.
 The final script rules are:
 
 Normal paragraph rule:
-Every non-avatar final script paragraph must be strictly between ninety and two hundred characters including spaces.
+Every non-avatar final script paragraph must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 Avatar rule:
 If enabled, the final full script must contain exactly three avatar commentary blocks total.
@@ -5737,7 +5754,7 @@ Avatar Slot Summary:
 No avatar commentary in Part One. The first avatar is planned later, after the first practical public payoff.
 
 Formatting Contract Reminder:
-Every normal final script paragraph must be strictly between ninety and two hundred characters including spaces. Avatar bodies must be around three hundred to four hundred characters if used.
+Every normal final script paragraph must be strictly between one hundred twenty and two hundred twenty characters including spaces. Avatar bodies must be around three hundred to four hundred characters if used.
 
 Two. PART ONE — THE SON THEY THREW AWAY
 
@@ -6384,7 +6401,7 @@ Avatar placements:
 No avatar in Part One. Do not write any [AVATAR] block in this part.
 
 Paragraph length rule:
-Every non-avatar paragraph in the final script must be strictly between ninety and two hundred characters including spaces.
+Every non-avatar paragraph in the final script must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 Avatar count and length rule:
 Full script must contain exactly three avatar blocks if enabled. Each avatar body must be around three hundred to four hundred characters excluding the [AVATAR] tag.
@@ -7164,19 +7181,19 @@ I was very determined and knew I had to keep going because my future depended on
 PARAGRAPH LENGTH RULE
 ==================================================
 
-Every normal non-avatar paragraph must be strictly between ninety and two hundred characters including spaces.
+Every normal non-avatar paragraph must be strictly between one hundred twenty and two hundred twenty characters including spaces.
 
 This rule applies to narration and dialogue paragraphs.
 
-No normal paragraph may be shorter than ninety characters.
+No normal paragraph may be shorter than one hundred twenty characters.
 
-No normal paragraph may be longer than two hundred characters.
+No normal paragraph may be longer than two hundred twenty characters.
 
 If a sentence is too short, merge it naturally with action, reaction, sensory detail, or internal thought.
 
 If a paragraph is too long, split it naturally into two paragraphs that both obey the character range.
 
-Do not create one-line punch paragraphs shorter than ninety characters.
+Do not create one-line punch paragraphs shorter than one hundred twenty characters.
 
 Do not create huge paragraphs.
 
@@ -7445,7 +7462,7 @@ Before finalizing, silently check:
 - Did I preserve emotional engine?
 - Did I use competitor references only for rhythm?
 - Did I avoid copying competitor scenes?
-- Are all normal paragraphs between ninety and two hundred characters?
+- Are all normal paragraphs between one hundred twenty to two hundred twenty characters?
 - Did I write exactly the approved avatar blocks for this part?
 - Is avatar body length around three hundred to four hundred characters if used?
 - Are all numbers and symbols written as words?
@@ -7464,6 +7481,8 @@ Output only the script text.`,
 
 export const INITIAL_STATE: ProjectState = {
   projectTitle: 'Untitled Recap',
+  ideaMode: 'develop_raw_idea',
+  marketResearch: '',
   genre: 'Drama / Revenge',
   language: 'English',
   targetLength: '15-20 minutes',
@@ -7530,6 +7549,7 @@ export const INITIAL_STATE: ProjectState = {
   finalCleanScript: '',
   
   supervisorReports: {
+    idea_market: null,
     raw_idea: null,
     style_analyzer: null,
     story_dna: null,
@@ -7539,6 +7559,7 @@ export const INITIAL_STATE: ProjectState = {
     clean_export: null,
   },
   stageStatuses: {
+    idea_market: 'not_started',
     raw_idea: 'not_started',
     style_analyzer: 'not_started',
     story_dna: 'not_started',
@@ -7549,6 +7570,7 @@ export const INITIAL_STATE: ProjectState = {
   },
   lockedData: {},
   handoffSummaries: {
+    idea_market: '',
     raw_idea: '',
     style_analyzer: '',
     story_dna: '',
@@ -7558,6 +7580,7 @@ export const INITIAL_STATE: ProjectState = {
     clean_export: '',
   },
   lastGeneratedAt: {
+    idea_market: null,
     raw_idea: null,
     style_analyzer: null,
     story_dna: null,
@@ -7567,6 +7590,7 @@ export const INITIAL_STATE: ProjectState = {
     clean_export: null,
   },
   lastEditedAt: {
+    idea_market: null,
     raw_idea: null,
     style_analyzer: null,
     story_dna: null,

@@ -245,14 +245,22 @@ export function ScriptWriterPanel({
                   {part.draftText && part.status !== 'locked' && (
                     <div className="flex gap-2">
                        <button onClick={() => onCheckPart(idx)} className="text-[11px] font-bold text-slate-600 hover:text-blue-600 flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors">
-                         Check
-                       </button>
-                       <button onClick={() => updatePart(idx, { status: 'approved' })} className="text-[11px] font-bold text-slate-600 hover:text-emerald-600 flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition-colors">
-                         Approve
+                         Check & Approve
                        </button>
                     </div>
                   )}
                 </div>
+                
+                {part.validationIssues && part.validationIssues.length > 0 && (
+                  <div className="mt-2 p-2 bg-rose-50 border border-rose-200 rounded">
+                    <div className="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">Validation Issues</div>
+                    <ul className="text-[11px] text-rose-600 list-disc list-inside space-y-0.5">
+                      {part.validationIssues.map((issue, i) => (
+                        <li key={i}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -6,6 +6,23 @@ import { RightPanel } from './components/RightPanel';
 import { SupervisorPanel } from './components/SupervisorPanel';
 import { Bug, X } from 'lucide-react';
 import { saveProjectState, loadProjectState } from './lib/db';
+import {
+  mergeSupervisorReportWithValidation,
+  validateScriptText,
+  validationIssueSummary,
+} from './lib/scriptValidation';
+
+function getScriptPartValidationPatch(draftText: string): Partial<ScriptPart> {
+  const validation = validateScriptText(draftText, 'script_part');
+  return {
+    wordOrCharacterCount: validation.characterCount,
+    avatarCount: validation.avatarCount,
+    hasGenerationResidue: validation.hasGenerationResidue,
+    hasDuplicateBlocks: validation.hasDuplicateBlocks,
+    isComplete: validation.ok,
+    validationIssues: validation.issues.map((issue) => `${issue.severity.toUpperCase()} [${issue.code}] ${issue.message}`),
+  };
+}
 
 function compactStateForStorage(inputState: ProjectState): ProjectState {
   // Return a shallow copy to prevent modifying active react state
@@ -68,7 +85,7 @@ export default function App() {
   const stateRef = useRef<ProjectState>(state);
 
   const [currentStageId, setCurrentStageId] = useState<StageId>(() => {
-    return (localStorage.getItem('studio_writer_stage') as StageId) || 'raw_idea';
+    return (localStorage.getItem('studio_writer_stage') as StageId) || 'idea_market';
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
@@ -227,8 +244,26 @@ export default function App() {
           if (dbState.referenceLibraryLoaded === undefined) {
             dbState.referenceLibraryLoaded = Boolean(dbState.competitors && dbState.competitors.trim());
           }
+          if (dbState.ideaMode === undefined) {
+            dbState.ideaMode = 'develop_raw_idea';
+            dbState.marketResearch = '';
+          }
+          let needsUpdate = false;
+          ['idea_market'].forEach(stage => {
+            if (!(stage in dbState.supervisorReports)) {
+              dbState.supervisorReports[stage] = null;
+              dbState.stageStatuses[stage] = 'not_started';
+              dbState.handoffSummaries[stage] = '';
+              dbState.lastGeneratedAt[stage] = null;
+              dbState.lastEditedAt[stage] = null;
+              needsUpdate = true;
+            }
+          });
           setState(dbState);
           stateRef.current = dbState;
+          if (needsUpdate) {
+            saveProjectState('studio_writer_project', dbState);
+          }
         }
       })
       .catch((err) => {
@@ -326,6 +361,7 @@ export default function App() {
 
   const getStageContent = (stageId: StageId): string => {
     switch(stageId) {
+      case 'idea_market': return state.marketResearch;
       case 'raw_idea': return state.developedIdea;
       case 'style_analyzer': return state.styleDna;
       case 'story_dna': return state.storyContract;
@@ -339,6 +375,7 @@ export default function App() {
 
   const setStageContent = (stageId: StageId, content: string) => {
     switch(stageId) {
+      case 'idea_market': updateState({ marketResearch: content }); break;
       case 'raw_idea': updateState({ developedIdea: content }); break;
       case 'style_analyzer': updateState({ styleDna: content }); break;
       case 'story_dna': updateState({ storyContract: content }); break;
@@ -679,7 +716,8 @@ export default function App() {
           lockedStatus: false
       };
       
-      updateScriptPart(index, { status: 'generated', draftText: textOutput, wordOrCharacterCount: textOutput.length });
+      const validationPatch = getScriptPartValidationPatch(textOutput);
+      updateScriptPart(index, { status: 'generated', draftText: textOutput, ...validationPatch });
       updateState({
           promptHistory: [newHistoryEntry, ...stateRef.current.promptHistory]
       });
@@ -705,12 +743,18 @@ export default function App() {
         
         // Use stateRef.current to get the actual up-to-date parts on every loop iteration
         const currentParts = stateRef.current.scriptParts; 
-        if (currentParts[i].draftText && currentParts[i].draftText.length > 0) {
-            continue;
+        if (!currentParts[i].draftText || currentParts[i].draftText.length === 0) {
+            const success = await handleGeneratePart(i);
+            if (!success || stopRequestedRef.current) break;
         }
 
-        const success = await handleGeneratePart(i);
-        if (!success || stopRequestedRef.current) break;
+        const approved = await handleCheckPart(i);
+        if (!approved) {
+           setWarningMessage(`Batch stopped. Part ${currentParts[i].partNumber} could not be approved.`);
+           setTimeout(() => setWarningMessage(null), 5000);
+           break;
+        }
+        if (stopRequestedRef.current) break;
 
         // If there are more parts to generate, perform a safe back-off delay of 4 seconds to prevent 429 RPM limit
         if (i < stateRef.current.scriptParts.length - 1) {
@@ -739,61 +783,85 @@ export default function App() {
     updateScriptPart(index, { draftText: '', status: 'not_started', wordOrCharacterCount: 0 });
   };
   
-  const handleCheckPart = async (index: number) => {
+  const handleCheckPart = async (index: number, maxAttempts = 2): Promise<boolean> => {
     try {
       const { buildSupervisorPrompt, buildRepairPrompt } = await import('./lib/PromptBuilder');
-      const currentState = stateRef.current;
-      const part = currentState.scriptParts[index];
-      const promptUsed = buildSupervisorPrompt('script_writer', part.draftText, currentState);
-      
       setIsGenerating(true);
       
-      // Step 1: Supervisor Analysis
-      const analyzeData = await fetchWithRetry('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptUsed, type: 'json' })
-      });
-      const report = analyzeData.json as SupervisorReport;
-      
-      updateState({
-        supervisorReports: {
-          ...currentState.supervisorReports,
-          script_writer: report
-        }
-      });
-      
-      const reportStr = JSON.stringify(report);
-      const hasDrift = reportStr.includes('GENRE DRIFT DETECTED');
-      
-      if (!report.canContinue || hasDrift || report.status !== 'ok') {
-        updateScriptPart(index, { status: 'needs_repair' });
+      let attempt = 0;
+      let currentState = stateRef.current;
+      let part = currentState.scriptParts[index];
+
+      while (attempt < maxAttempts) {
+        attempt++;
+        const promptUsed = buildSupervisorPrompt('script_writer', part.draftText, currentState);
         
-        // Auto-repair immediately if drift is detected or it needs repair
-        const repairPrompt = buildRepairPrompt('script_writer', part.draftText, report, currentState);
-        const repairData = await fetchWithRetry('/api/generate', {
+        // Step 1: Supervisor Analysis
+        const analyzeData = await fetchWithRetry('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: repairPrompt, type: 'text', stageId: 'script_writer' })
+          body: JSON.stringify({ prompt: promptUsed, type: 'json' })
+        });
+        const aiReport = analyzeData.json as SupervisorReport;
+
+        // Step 2: Local Validation
+        const localValidation = validateScriptText(part.draftText, 'script_part');
+        
+        // Step 3: Merge
+        const mergedReport = mergeSupervisorReportWithValidation(aiReport, localValidation);
+        
+        updateState({
+          supervisorReports: {
+            ...currentState.supervisorReports,
+            script_writer: mergedReport
+          }
         });
         
-        const newText = repairData.text;
-        updateScriptPart(index, { 
-          status: 'generated', 
-          draftText: newText, 
-          wordOrCharacterCount: newText.length,
-          hasGenerationResidue: false
-        });
-        setWarningMessage('Part repaired automatically by Nova.');
-        setTimeout(() => setWarningMessage(null), 4000);
-      } else {
-        updateScriptPart(index, { status: 'approved', hasGenerationResidue: false });
+        const reportStr = JSON.stringify(mergedReport);
+        const hasDrift = reportStr.includes('GENRE DRIFT DETECTED');
+        
+        if (!mergedReport.canContinue || hasDrift || mergedReport.status !== 'ok') {
+          updateScriptPart(index, { status: 'needs_repair', validationIssues: mergedReport.problems });
+          
+          if (attempt >= maxAttempts) {
+            setWarningMessage(`Part ${part.partNumber} failed after ${maxAttempts} attempts.`);
+            setTimeout(() => setWarningMessage(null), 4000);
+            return false;
+          }
+
+          // Repair
+          const repairPrompt = buildRepairPrompt('script_writer', part.draftText, mergedReport, currentState);
+          const repairData = await fetchWithRetry('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: repairPrompt, type: 'text', stageId: 'script_writer' })
+          });
+          
+          const newText = repairData.text;
+          const patch = getScriptPartValidationPatch(newText);
+          updateScriptPart(index, { 
+            status: 'generated', 
+            draftText: newText, 
+            ...patch
+          });
+          
+          currentState = stateRef.current;
+          part = currentState.scriptParts[index];
+          setWarningMessage(`Checking repaired Part ${part.partNumber} (Attempt ${attempt + 1})...`);
+        } else {
+          // Approved
+          const patch = getScriptPartValidationPatch(part.draftText);
+          updateScriptPart(index, { status: 'approved', ...patch });
+          return true;
+        }
       }
+      return false;
       
     } catch (err: any) {
       console.error("Check/Repair Part failed:", err);
       setWarningMessage(err.message || 'Error occurred during part check.');
       setTimeout(() => setWarningMessage(null), 4000);
+      return false;
     } finally {
       setIsGenerating(false);
     }
