@@ -663,3 +663,38 @@ export function validationIssueSummary(
     .map((issue) => issue.message)
     .join("\n");
 }
+
+export function detectHardDrift(
+  localScriptVal: ScriptValidationResult,
+  aiReport: SupervisorReport | null,
+): boolean {
+  const localHasDrift = localScriptVal.failures.some(
+    (f) => f.code === "hard_story_drift",
+  );
+  if (localHasDrift) return true;
+
+  if (!aiReport) return false;
+
+  const reportString = JSON.stringify(aiReport).toLowerCase();
+
+  const driftKeywords = [
+    "genre drift",
+    "setting drift",
+    "wrong premise",
+    "wrong world",
+    "sci-fi",
+    "facility",
+    "toxic trench",
+    "proctors",
+    "proctor",
+    "plasma battery",
+    "plasma batteries",
+    "exoskeleton",
+    "exoskeletons",
+    "dungeon/facility",
+    "dungeon/facility survival",
+    "hard_story_drift",
+  ];
+
+  return driftKeywords.some((kw) => reportString.includes(kw));
+}

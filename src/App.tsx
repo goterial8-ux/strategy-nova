@@ -160,6 +160,17 @@ export default function App() {
             parsed.promptRegistry.stageFiveScriptWriterPrompt =
               INITIAL_STATE.promptRegistry.stageFiveScriptWriterPrompt;
           }
+          if (!parsed.autopilotState) {
+            parsed.autopilotState = INITIAL_STATE.autopilotState;
+          } else {
+            if (parsed.autopilotState.repairAttemptsByPart === undefined) parsed.autopilotState.repairAttemptsByPart = {};
+            if (parsed.autopilotState.rebuildAttemptsByPart === undefined) parsed.autopilotState.rebuildAttemptsByPart = {};
+            if (parsed.autopilotState.cleanupAttemptsByPart === undefined) parsed.autopilotState.cleanupAttemptsByPart = {};
+            if (parsed.autopilotState.rateLimitAttempts === undefined) parsed.autopilotState.rateLimitAttempts = 0;
+            if (parsed.autopilotState.retryAfterAt === undefined) parsed.autopilotState.retryAfterAt = null;
+            if (parsed.autopilotState.lastError === undefined) parsed.autopilotState.lastError = null;
+            if (parsed.autopilotState.lastSupervisorReport === undefined) parsed.autopilotState.lastSupervisorReport = null;
+          }
         }
         return parsed;
       } catch (e) {
@@ -385,11 +396,42 @@ export default function App() {
               currentStep: "generate",
               retryAfterAt: null,
               repairAttemptsByPart: {},
+              rebuildAttemptsByPart: {},
+              cleanupAttemptsByPart: {},
               rateLimitAttempts: 0,
               lastError: null,
               lastSupervisorReport: null,
             };
             needsUpdate = true;
+          } else {
+            if (dbState.autopilotState.repairAttemptsByPart === undefined) {
+              dbState.autopilotState.repairAttemptsByPart = {};
+              needsUpdate = true;
+            }
+            if (dbState.autopilotState.rebuildAttemptsByPart === undefined) {
+              dbState.autopilotState.rebuildAttemptsByPart = {};
+              needsUpdate = true;
+            }
+            if (dbState.autopilotState.cleanupAttemptsByPart === undefined) {
+              dbState.autopilotState.cleanupAttemptsByPart = {};
+              needsUpdate = true;
+            }
+            if (dbState.autopilotState.rateLimitAttempts === undefined) {
+              dbState.autopilotState.rateLimitAttempts = 0;
+              needsUpdate = true;
+            }
+            if (dbState.autopilotState.retryAfterAt === undefined) {
+              dbState.autopilotState.retryAfterAt = null;
+              needsUpdate = true;
+            }
+            if (dbState.autopilotState.lastError === undefined) {
+              dbState.autopilotState.lastError = null;
+              needsUpdate = true;
+            }
+            if (dbState.autopilotState.lastSupervisorReport === undefined) {
+              dbState.autopilotState.lastSupervisorReport = null;
+              needsUpdate = true;
+            }
           }
           ["idea_market"].forEach((stage) => {
             if (!(stage in dbState.supervisorReports)) {
@@ -573,9 +615,7 @@ export default function App() {
               },
             });
           } else {
-            const hasHardDrift = localScriptVal.failures.some(
-              (f) => f.code === "hard_story_drift",
-            );
+            const hasHardDrift = validationMod.detectHardDrift(localScriptVal, aiReport);
             const nextStep = hasHardDrift
               ? "rebuild"
               : mergedReport.status === "needs_small_repair"

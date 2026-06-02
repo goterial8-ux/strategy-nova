@@ -1,14 +1,28 @@
 import { ProjectState, StageId } from "../types";
 
-const SCRIPT_FORMATTING_CONTRACT = `Final script output format:
+const DRAFT_SCRIPT_CONTRACT = `=== DRAFT SCRIPT CONTRACT ===
+Draft script output format and goals:
+- Final script language is English only.
+- Prioritize correct story progression, survival premise, first-person voice, continuity, and complete part generation.
+- The story must be told in a living first-person recap voice using "I", "my", and "we" naturally.
+- Each normal narrator paragraph represents one visual frame.
+- During drafting, paragraphs of 120-235 characters are completely valid (do not block or fail on them).
+- Each paragraph must contain one concrete visual beat: action, image, reaction, decision, danger, resource use, or payoff.
+- Explain tactics/plans through action and immediate consequence, not through long textbook exhibition.
+- Do not copy competitor paragraph formatting. Convert reference rhythm into frame-sized narration.
+- Do not use stage labels, scene labels, markdown tables, bullet lists, debug notes, or unfinished markers in the final script.`;
+
+const FINAL_POLISH_CONTRACT = `=== FINAL POLISH CONTRACT ===
+Strict final polish format and cleanup rules:
 - Final script language is English only.
 - The story must be told in a living first-person recap voice using "I", "my", and "we" naturally.
-- The final script is used for image prompt generation.
 - Each normal narrator paragraph represents one visual frame.
-- Every normal non-avatar paragraph must be between one hundred twenty and two hundred twenty characters including spaces.
+- Every normal non-avatar paragraph MUST be strictly between 120 and 220 characters including spaces. Hard limit.
 - Each paragraph must contain one concrete visual beat: action, image, reaction, decision, danger, resource use, or payoff.
 - Explain tactics through action and immediate consequence, not through long textbook exposition.
-- Do not copy competitor paragraph formatting. Competitor scripts may be one long paragraph; convert only their voice rhythm into frame-sized narration.
+- Remove all repeated adjectives, passive fluff, and clean up the export for smooth voiceover.
+- Ensure all scientific/technical/lecture style terms are replaced with visual survival language.
+- Keep the exact plot and scene order unchanged.
 - Do not use stage labels, scene labels, markdown tables, bullet lists, debug notes, or unfinished markers in the final script.`;
 
 const SCRIPT_VOICE_RULES_CONTRACT = `=== STRICT WRITER VOICE LOCK CONTRACT ===
@@ -18,10 +32,10 @@ The script must NOT sound like a science report, engineering textbook, game desi
 - Focused on action, reaction, humiliation, payoff, and escalation.
 
 Forbidden tone details to AVOID:
-- Technical report, engineering lecture, academic explanation, sci-fi system manual, dry tactical analysis, over-explaining physics.
-- Do NOT use these scientific or technical terms unless absolutely necessary: structural weak point, thermal signature, conductive, pressure system, optimized, resource loop, tactical analysis, calculated trajectory, energy source, mechanism efficiency, biological sample, facility, proctor, test subject, exoskeleton, plasma, laser, military armory.
+- Technical reports, engineering lectures, academic explanations, raw physics explanations, sci-fi system manuals, dry technical analysis, over-explaining mechanics.
+- Do NOT use these scientific or technical terms unless absolutely necessary: structural, structural weak point, thermal signature, conductive, pressure system, optimized, resource loop, tactical analysis, calculated trajectory, energy source, mechanism efficiency, biological sample, facility, proctor, test subject, exoskeleton, plasma, laser, military armory, calculation, physics explanation.
 
-Instead, replace technical language with simple, visual natural survival language:
+Instead, replace technical language with simple, visual natural survival language, focusing on what the character sees, what the character does, what changes on screen, and how allies/enemies react:
 - Bad: "Keima identified the structural weak point in the unstable coastal formation."
 - Good: "Keima saw one cracked stone holding the whole slope together. If that stone moved, the cliff would fall."
 - Bad: "The thermal signature confirmed a subterranean heat source."
@@ -431,7 +445,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       stage4Prompt = stage4Prompt.replaceAll("{{CURRENT_PART_PLAN}}", "None");
       stage4Prompt = stage4Prompt.replaceAll(
         "{{SCRIPT_FORMATTING_CONTRACT}}",
-        SCRIPT_FORMATTING_CONTRACT,
+        DRAFT_SCRIPT_CONTRACT,
       );
       stage4Prompt = stage4Prompt.replaceAll(
         "{{AVATAR_COMMENTARY_MAP}}",
@@ -533,7 +547,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       );
       stage5Prompt = stage5Prompt.replaceAll(
         "{{SCRIPT_FORMATTING_CONTRACT}}",
-        SCRIPT_FORMATTING_CONTRACT,
+        DRAFT_SCRIPT_CONTRACT,
       );
       stage5Prompt = stage5Prompt.replaceAll(
         "{{FORBIDDEN_ELEMENTS}}",
@@ -560,7 +574,7 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
       stage6Prompt = stage6Prompt.replaceAll("{{OUTPUT_LANGUAGE}}", "English");
       prompt += stage6Prompt;
       prompt += `\n\n=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}`;
-      prompt += `\n\n=== SCRIPT FORMATTING CONTRACT ===\n${SCRIPT_FORMATTING_CONTRACT}`;
+      prompt += `\n\n=== SCRIPT FORMATTING CONTRACT ===\n${FINAL_POLISH_CONTRACT}`;
       break;
   }
 
@@ -668,7 +682,7 @@ export function buildPartPrompt(
   );
   stage5Prompt = stage5Prompt.replaceAll(
     "{{SCRIPT_FORMATTING_CONTRACT}}",
-    SCRIPT_FORMATTING_CONTRACT,
+    DRAFT_SCRIPT_CONTRACT,
   );
   stage5Prompt = stage5Prompt.replaceAll(
     "{{FORBIDDEN_ELEMENTS}}",
@@ -704,7 +718,12 @@ export function buildSupervisorPrompt(
   output: string,
   state: ProjectState,
 ): string {
-  const additionalInstructions = `Supervisor MUST NOT trust words like "approved", "complete", "ready", or "final". Judge ONLY the actual text.\nFor script_writer and clean_export, FAIL if output drifts from manga/manhwa recap, protagonist is passive or overpowered, parts repeat functions, no visual payoff, no face-slap, flat allies, stupid enemies, generic AI text, lacks first-person authored voice, violates 120-220 character lengths, or has technical residue.\n\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\n=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${SCRIPT_FORMATTING_CONTRACT}\n\n=== LOCKED STORY CONTRACT ===\n${state.storyContract}`;
+  const contract = stageId === "clean_export" ? FINAL_POLISH_CONTRACT : DRAFT_SCRIPT_CONTRACT;
+  const lengthCheckInstruction = stageId === "clean_export"
+    ? "For clean_export, strictly enforce 120-220 character paragraph rules and remove any technical/scientific tone."
+    : "During Fast Script Mode, paragraph lengths from 221-235 are soft warnings only. Do not block approval for minor paragraph length issues. Only block for hard story, continuity, drift, incomplete output, or extreme paragraph length violations.";
+
+  const additionalInstructions = `Supervisor MUST NOT trust words like "approved", "complete", "ready", or "final". Judge ONLY the actual text.\nFor script_writer and clean_export, FAIL if output drifts from manga/manhwa recap, protagonist is passive or overpowered, parts repeat functions, no visual payoff, no face-slap, flat allies, stupid enemies, generic AI text, lacks first-person authored voice, or has technical residue.\n${lengthCheckInstruction}\n\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\n=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${contract}\n\n=== LOCKED STORY CONTRACT ===\n${state.storyContract}`;
 
   return `=== AI SUPERVISOR ===\n${state.promptRegistry.aiSupervisorPrompt}\n\n${additionalInstructions}\n\nSTAGE: ${stageId}\n\n=== OUTPUT TO CHECK ===\n${output}\n\nIMPORTANT: Provide your analysis and report in Russian.`;
 }
@@ -720,6 +739,8 @@ export function buildRepairPrompt(
       ? "English"
       : "Russian";
 
+  const contract = stageId === "clean_export" ? FINAL_POLISH_CONTRACT : DRAFT_SCRIPT_CONTRACT;
+
   // Check if we have hard drift
   const reportString = JSON.stringify(report || {}).toLowerCase();
   const hasHardDrift =
@@ -727,7 +748,12 @@ export function buildRepairPrompt(
     reportString.includes("premise") ||
     reportString.includes("genre") ||
     reportString.includes("setting") ||
-    reportString.includes("hard_story_drift");
+    reportString.includes("hard_story_drift") ||
+    reportString.includes("toxic trench") ||
+    reportString.includes("proctor") ||
+    reportString.includes("plasma battery") ||
+    reportString.includes("exoskeleton") ||
+    reportString.includes("dungeon/facility");
 
   let cleanedReport = { ...report };
 
@@ -788,7 +814,7 @@ export function buildRepairPrompt(
     cleanedReport.requiredFixes = Array.from(new Set(filteredFixes));
   }
 
-  const strictInstructions = `=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${SCRIPT_FORMATTING_CONTRACT}\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\nSTRICT INSTRUCTION: Preserve plot, facts, names, and scene order exactly. Repair style and length only.`;
+  const strictInstructions = `=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${contract}\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\nSTRICT INSTRUCTION: Preserve plot, facts, names, and scene order exactly. Repair style and length only.`;
 
   return `=== TARGETED REPAIR ===\n${state.promptRegistry.repairPrompt}\n\n${strictInstructions}\n\nBROKEN OUTPUT:\n${brokenOutput}\n\nSUPERVISOR REPORT:\n${JSON.stringify(cleanedReport, null, 2)}\n\nIMPORTANT: Output the repaired version in ${lang}. Ensure all structural rules are preserved.`;
 }

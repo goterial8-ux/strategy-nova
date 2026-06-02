@@ -6495,24 +6495,24 @@ You MUST maintain absolute alignment with the provided Story Plan and the Scene 
 
 CRITICAL: HOW TO REACH 10,000+ CHARACTERS (1,600+ WORDS) WITHOUT FLUFF (PREVENTING "LAZY" WRITING)
 Since you cannot use adjectives, filler, or poetic slop, you must work harder to expand the actual narrative depth. To reach the required length, DO NOT rush the plot. Instead, SLOW DOWN TIME within the scene:
-* MICRO-ACTIONS: Break down complex physical actions into step-by-step tactical moves. (e.g., Don't say "I fixed it." Say "I checked the valve. I cleared the rust. I tested the pressure. It held.")
-* DEEPEN THE CALCULATIONS: Expand the protagonist's internal monologue. Let the audience hear every option they consider, why options A and B fail, and why option C is the only choice.
-* EXPAND DIALOGUE & PUSHBACK: Make conversations longer and more resistant. Antagonists should argue back. Allies should doubt. The protagonist must convince them through facts.
-* ENVIRONMENTAL FRICTION: Introduce small, realistic obstacles that require immediate troubleshooting.
+* MICRO-ACTIONS: Break down complex physical actions into step-by-step visual actions. (e.g., Don't say "I fixed it." Say "I checked the valve. I cleared the rust. I pulled the lever. It held.")
+* DEEPEN THE SURVIVAL THOUGHTS: Expand the protagonist's internal monologue. Let the audience hear what they notice, what choices they weigh under pressure, why options A and B fail, and why option C is the only choice.
+* EXPAND DIALOGUE & PUSHBACK: Make conversations longer and more resistant. Antagonists should argue back. Allies should doubt. The protagonist must convince them through simple survival logic.
+* ENVIRONMENTAL FRICTION: Introduce small, realistic obstacles that require immediate hands-on troubleshooting.
 If you just skip from scene to scene quickly, the script will fail. You must "think harder" and build dense, active scenes.
 
 CRITICAL: AVOID THE "TEXTBOOK" TRAP (ЗАПРЕТ НА ДУШНИЛОВКУ И ЛЕКЦИИ)
-Calculations without danger are incredibly boring. Do not turn the script into a dry instruction manual.
-- STAKES & PRESSURE: Never perform a long calculation in a safe, quiet environment. Add a ticking clock or immediate danger. The protagonist must be figuring things out while under direct threat (physical danger, social humiliation, running out of resources).
-- THE 50/50 RULE (MIND & ACTION): Balance internal monologue with external interaction. For every block of internal calculation, there MUST be an equal amount of dialogue, physical action, or environmental change. Do not put the protagonist in a corner to think for three paragraphs.
-- TEST THE THEORY INSTANTLY: Calculate -> Act -> React. Let them apply their knowledge in small, immediate steps that either work or fail, rather than summarizing a master plan.
-- HUMAN FACTOR: They are calculating to survive, not just to solve a math puzzle. Ground their intellect in physical reality (adrenaline, pain, exhaustion, relief).
+Explaining details without danger is incredibly boring. Do not turn the script into a dry science report or textbook.
+- STAKES & PRESSURE: Never perform a long scientific check in a safe, quiet environment. Add a ticking clock or immediate danger. The protagonist must be figuring things out while under direct threat (physical danger, social humiliation, running out of resources).
+- THE 50/50 RULE (MIND & ACTION): Balance internal thoughts with external interaction. For every block of internal thinking, there MUST be an equal amount of dialogue, physical action, or environmental change. Do not put the protagonist in a corner to think for three paragraphs.
+- TEST THE THEORY INSTANTLY: Weigh danger -> Act -> React. Let them apply their knowledge in small, immediate steps that either work or fail, rather than summarizing a master plan.
+- HUMAN FACTOR: They are struggling to survive, not just solving an academic puzzle. Ground their intellect in physical reality (adrenaline, pain, exhaustion, relief). Keep it human and real.
 
 CRITICAL: LENGTH REQUIREMENT, ADJECTIVE DISCIPLINE & MC BALANCE (АНТИ-ИМБА)
 Each part MUST BE strictly between 10,000 and 14,000 characters (approximately 1,600 to 2,300 words) including spaces.
 - This is a hard requirement. If you run out of plot, expand NOT by using flowery/over-decorative adjectives or passive "poetic slop", but by including more practical, active narrative details:
   * External settings (weather, sounds, smell, direct tactile sensations, atmosphere). Keep descriptions active and dry, never flowery.
-  * Internal character calculations, choices, and micro-strategies (thoughts, doubts, evaluations, fears, what they plan to do next).
+  * Internal character survival decisions, choices, and micro-strategies (thoughts, doubts, evaluations, fears, what they plan to do next).
   * Social interactions and reactions of characters nearby.
   * Concrete details of resources, items, or environment components the protagonist can manipulate.
 - PROTAGONIST IS NOT AN OMNIPOTENT GOD (ГГ НЕ ВСЕСИЛЬНЫЙ БОГ):
@@ -6521,7 +6521,7 @@ Each part MUST BE strictly between 10,000 and 14,000 characters (approximately 1
   * Their theoretical or professional background specialized knowledge is NOT a magic cheat code. Every physical/mental effort must match their stamina and actual capabilities, and fatigue/strain must feel real.
   * Let their plans have realistic friction, failures, and costly consequences. The protagonist must face setbacks, struggle, make miscalculations, or barely survive rather than easily solving every massive crisis as an invincible Mary Sue / Gary Stu.
 - DO NOT use passive "adjective soup" or purple prose to inflate length (e.g., "heavy iron collar on my physical neck was fusing with my blistering skin under the unforgiving midday sun" is banned/запрещено. Instead write: "Железный ошейник натирал шею под солнцем.").
-- ZERO TOLERANCE FOR FLUFF (ВОДА): If you need to hit the character count, expand the actual plot (dialogue, physical actions, calculations), DO NOT add pointless sentences about the sky or endless emotional repetition.
+- ZERO TOLERANCE FOR FLUFF (ВОДА): If you need to hit the character count, expand the actual plot (dialogue, physical actions, survival decisions), DO NOT add pointless sentences about the sky or endless emotional repetition.
 - DO NOT summarize.
 - DO NOT hurry.
 - Immerse the viewer in the scene.
@@ -6529,16 +6529,16 @@ Each part MUST BE strictly between 10,000 and 14,000 characters (approximately 1
 CRITICAL: MANGA/MANHWA DRAMA & ENGAGEMENT (ЗАПРЕТ НА СКУКУ И УНЫЛОСТЬ)
 - COMPETITOR NARRATIVE STYLE (FIRST-PERSON GRITTY REALISM): The narrative MUST mimic top-tier survival/reincarnation scripts. Use SHORT, PUNCHY, DECLARATIVE sentences. Avoid long, winding complex grammar. Start scenes abruptly with action or a bold statement (e.g., "I died. Not dramatically." or "My name is Kenji...").
 - FAST-PACED MICRO-PROGRESSION: The protagonist should constantly face immediate, life-or-death challenges, solve them with their specific intellect or skill, immediately gain a tangible reward/resource, and immediately face the next escalated problem. The world should react dynamically to them.
-- RUTHLESS PRAGMATISM: The protagonist is not soft. They think in terms of survival, resources, math, and efficiency. They treat interactions as transactions and evaluate people around them analytically. Let the audience hear this cold, sharp internal monologue.
+- RUTHLESS PRAGMATISM: The protagonist is not soft. They think in terms of survival, resources, and speed. They treat interactions as opportunities and evaluate people around them. Let the audience hear this sharp internal monologue.
 - ACT LIKE A TOP-TIER MANGA SCRIPTWRITER: The story must never feel dry, boring, or mechanical.
 - PLOT TWISTS & TENSION: Deliberately build tension and pressure. Create moments where it seems impossible to win, making the protagonist use cleverness (not superpowers) to escape.
 - SATISFYING PAYOFFS (FACE-SLAPS): Deliver immensely rewarding "face-slap" moments where arrogant antagonists are proven wrong. These victories must be earned through highly satisfying, strategic outplays, not unearned omnipotence.
 - Maintain high narrative stakes and emotional momentum.
 
 CRITICAL: LIVING NARRATOR & ACTIVE ANALYSIS (ЖИВОЙ РАССКАЗЧИК И АНАЛИЗ)
-- CORE IDENTITY: The protagonist relies on intellect, not raw strength. They survive through calculation and specialist knowledge. The emotional engine often relies on: underestimation -> calculated action -> face-slap payoff -> new status. Physical weakness remains a constant threat, driving their need for intellectual dominance.
-- THE PROTAGONIST IS NOT A ROBOT: The script must convey their deep, active inner monologue. They must continually analyze their environment, dissect their enemies' motives, calculate the risks, and express their real psychological state (fears, doubts, adrenaline, cold resolve).
-- SHOW THE MENTAL PROCESS: Do not just report a sequence of events (e.g. "I went there, he attacked, I won."). Instead, immerse the viewer in the protagonist's real-time analytical process as they figure out the solution under pressure. Let the audience hear the character *think*.
+- CORE IDENTITY: The protagonist relies on intellect, not raw strength. They survive through observation and practical wits. The emotional engine often relies on: underestimation -> calculated action -> face-slap payoff -> new status. Physical weakness remains a constant threat, driving their need for intellectual dominance.
+- THE PROTAGONIST IS NOT A ROBOT: The script must convey their deep, active inner monologue. They must continually observe their environment, dissect their enemies' motives, weigh the risks, and express their real psychological state (fears, doubts, adrenaline, cold resolve).
+- SHOW THE MENTAL PROCESS: Do not just report a sequence of events (e.g. "I went there, he attacked, I won."). Instead, immerse the viewer in the protagonist's real-time survival choices as they figure out the solution under pressure. Let the audience hear the character *think*.
 
 ═══════════════════════════════
 SENTENCE RULES — NON-NEGOTIABLE
