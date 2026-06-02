@@ -331,8 +331,35 @@ export function buildSupervisorPrompt(stageId: StageId, output: string, state: P
 
 export function buildRepairPrompt(stageId: StageId, brokenOutput: string, report: any, state: ProjectState): string {
   const lang = stageId === 'script_writer' || stageId === 'clean_export' ? 'English' : 'Russian';
-  const lengthConstraint = stageId === 'script_writer' ? "IMPORTANT: The repaired output MUST be between 10,000 and 14,000 characters including spaces. If the previous version was too short, you MUST expand the scenes, internal monologues, and atmosphere to reach this target length." : "";
   const strictInstructions = `=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${SCRIPT_FORMATTING_CONTRACT}\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\nSTRICT INSTRUCTION: Preserve plot, facts, names, and scene order exactly. Repair style and length only.`;
 
-  return `=== REPAIR ===\n${state.promptRegistry.repairPrompt}\n\n${strictInstructions}\n\nBROKEN OUTPUT:\n${brokenOutput}\n\nSUPERVISOR REPORT:\n${JSON.stringify(report, null, 2)}\n\n${lengthConstraint}\n\nIMPORTANT: Output the repaired version in ${lang}. Ensure all structural rules are preserved.`;
+  return `=== TARGETED REPAIR ===\n${state.promptRegistry.repairPrompt}\n\n${strictInstructions}\n\nBROKEN OUTPUT:\n${brokenOutput}\n\nSUPERVISOR REPORT:\n${JSON.stringify(report, null, 2)}\n\nIMPORTANT: Output the repaired version in ${lang}. Ensure all structural rules are preserved.`;
+}
+
+export function buildSoftCleanupPrompt(brokenOutput: string, report: any): string {
+  return `=== SOFT CLEANUP ===\nYou are the final polish editor. The text has minor layout or formatting issues, such as paragraph lengths being slightly off (aim for 120-220 characters).
+  
+SUPERVISOR REPORT:
+${JSON.stringify(report, null, 2)}
+
+Apply compact trimming or slight expansion. Do NOT rewrite the plot, do NOT alter the character voice, and do NOT change fact sequence. Output only the cleaned script part in English.
+BROKEN OUTPUT:
+${brokenOutput}`;
+}
+
+export function buildRebuildPrompt(partNumber: number, state: ProjectState, report: any): string {
+  const part = state.scriptParts.find(p => p.partNumber === partNumber);
+  const partTitle = part?.partTitle || `Part ${partNumber}`;
+  const partPrompt = buildPartPrompt(partNumber, state);
+  
+  return `=== FULL PART REBUILD ===\nThe previous attempt completely failed to follow the plan or drifted into the wrong genre.
+  
+SUPERVISOR REJECTION REPORT:
+${JSON.stringify(report, null, 2)}
+
+STRICT REBUILD INSTRUCTION:
+Rewrite this part from scratch according to the approved plan. Do not preserve the failed version. Stay inside the locked premise, setting, characters, conflict, and progression. Do not introduce new systems, locations, enemies, or genre elements unless they are in the approved plan.
+
+Original Part Prompt:
+${partPrompt}`;
 }

@@ -27,6 +27,8 @@ export interface ScriptValidationResult {
 
 export const SCRIPT_PARAGRAPH_MIN = 120;
 export const SCRIPT_PARAGRAPH_MAX = 220;
+export const SCRIPT_PARAGRAPH_HARD_MIN = 100;
+export const SCRIPT_PARAGRAPH_HARD_MAX = 235;
 
 const RESIDUE_PATTERNS: Array<[RegExp, string]> = [
   [/\[(?:generating part|generation|draft continues|unfinished|todo|placeholder|debug)\]/i, 'generation marker'],
@@ -188,24 +190,35 @@ export function validateScriptText(text: string, scope: ScriptValidationScope): 
       }
 
       const length = paragraph.length;
-      if (length < SCRIPT_PARAGRAPH_MIN) {
-        addIssue(issues, {
-          severity: 'fail',
-          code: 'paragraph_too_short',
-          message: `Paragraph ${paragraphNumber} is ${length} characters; required range is ${SCRIPT_PARAGRAPH_MIN}-${SCRIPT_PARAGRAPH_MAX}.`,
-          paragraphIndex: paragraphNumber,
-          length,
-          excerpt: excerpt(paragraph),
-        });
-      } else if (length > SCRIPT_PARAGRAPH_MAX) {
-        addIssue(issues, {
-          severity: 'fail',
-          code: 'paragraph_too_long',
-          message: `Paragraph ${paragraphNumber} is ${length} characters; required range is ${SCRIPT_PARAGRAPH_MIN}-${SCRIPT_PARAGRAPH_MAX}.`,
-          paragraphIndex: paragraphNumber,
-          length,
-          excerpt: excerpt(paragraph),
-        });
+      if (length < SCRIPT_PARAGRAPH_MIN || length > SCRIPT_PARAGRAPH_MAX) {
+         if (length < SCRIPT_PARAGRAPH_HARD_MIN) {
+           addIssue(issues, {
+             severity: 'fail',
+             code: 'paragraph_too_short_hard',
+             message: `Paragraph ${paragraphNumber} is ${length} characters (below hard minimum of ${SCRIPT_PARAGRAPH_HARD_MIN}).`,
+             paragraphIndex: paragraphNumber,
+             length,
+             excerpt: excerpt(paragraph),
+           });
+         } else if (length > SCRIPT_PARAGRAPH_HARD_MAX) {
+           addIssue(issues, {
+             severity: 'fail',
+             code: 'paragraph_too_long_hard',
+             message: `Paragraph ${paragraphNumber} is ${length} characters (above hard maximum of ${SCRIPT_PARAGRAPH_HARD_MAX}).`,
+             paragraphIndex: paragraphNumber,
+             length,
+             excerpt: excerpt(paragraph),
+           });
+         } else {
+           addIssue(issues, {
+             severity: 'warn',
+             code: 'paragraph_length_soft',
+             message: `Paragraph ${paragraphNumber} length ${length} slightly outside target 120-220 characters.`,
+             paragraphIndex: paragraphNumber,
+             length,
+             excerpt: excerpt(paragraph),
+           });
+         }
       }
 
       const duplicateKey = normalizeForDuplicate(paragraph);
@@ -306,12 +319,22 @@ export function mergeSupervisorReportWithValidation(
   report: SupervisorReport,
   validation: ScriptValidationResult,
 ): SupervisorReport {
-  if (validation.ok) return report;
+  if (validation.ok && validation.warnings.length === 0) return report;
+
+  let hasSoftLength = false;
+  let softLengthCount = 0;
+  let softLengthDetails = '';
 
   const validationProblems = validation.failures.map((issue) => `[${issue.code}] ${issue.message}`);
+  
+  const warnProblems = validation.warnings.filter(w => w.code === 'paragraph_length_soft');
+  if (warnProblems.length > 0) {
+    validationProblems.push(`[paragraph_length_soft] Paragraph length issue: ${warnProblems.length} paragraphs slightly outside target.`);
+  }
+
   const validationFixes = validation.failures.map((issue) => {
-    if (issue.code === 'paragraph_too_short' || issue.code === 'paragraph_too_long') {
-      return 'Fix paragraph lengths to 120-220 characters while preserving plot, facts, and scene order.';
+    if (issue.code === 'paragraph_too_short_hard' || issue.code === 'paragraph_too_long_hard') {
+      return 'Fix paragraph lengths to strictly 120-220 characters without changing events.';
     }
     if (issue.code === 'missing_first_person_voice' || issue.code === 'mostly_third_person_voice') {
       return 'Rewrite narration into first-person manhwa recap voice without changing events.';
@@ -331,19 +354,26 @@ export function mergeSupervisorReportWithValidation(
     return issue.message;
   });
 
+  if (warnProblems.length > 0) {
+    validationFixes.push('Apply compact trimming to paragraphs slightly over target length.');
+  }
+
+  // Generate unique fixes
+  const uniqueFixes = Array.from(new Set(validationFixes));
+
   const localStatus: SupervisorStatus = validation.failures.some((issue) =>
-    ['paragraph_too_short', 'paragraph_too_long', 'missing_first_person_voice', 'mostly_third_person_voice', 'duplicate_paragraph', 'generic_ai_cliche', 'robotic_sequence_rhythm', 'repetitive_flat_openings'].includes(issue.code)
+    ['paragraph_too_short_hard', 'paragraph_too_long_hard', 'missing_first_person_voice', 'mostly_third_person_voice', 'duplicate_paragraph', 'generic_ai_cliche', 'robotic_sequence_rhythm', 'repetitive_flat_openings'].includes(issue.code)
   )
     ? 'needs_serious_repair'
-    : 'needs_small_repair';
+    : (validation.failures.length > 0 || warnProblems.length > 0 ? 'needs_small_repair' : 'ok');
 
   return {
     ...report,
     status: worstStatus(report.status || 'ok', localStatus),
-    problems: [...(report.problems || []), ...validationProblems],
-    requiredFixes: [...(report.requiredFixes || []), ...validationFixes],
-    recommendation: 'Deterministic script validation failed. Repair the listed formatting/style issues before approval.',
-    canContinue: false,
+    problems: Array.from(new Set([...(report.problems || []), ...validationProblems])),
+    requiredFixes: Array.from(new Set([...(report.requiredFixes || []), ...uniqueFixes])),
+    recommendation: localStatus !== 'ok' ? 'Deterministic script validation failed. Repair the listed formatting/style issues before approval.' : report.recommendation,
+    canContinue: localStatus === 'ok' && report.canContinue,
   };
 }
 

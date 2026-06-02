@@ -97,6 +97,7 @@ interface RightPanelProps {
   onClearPart: (index: number) => void;
   isBatchGenerating: boolean;
   onCheckPart: (index: number) => void;
+  onRebuildPart?: (index: number) => void;
   onAssembleScript: () => void;
   hasSupervisorReport?: boolean;
   autopilotState?: AutopilotState;
@@ -124,6 +125,7 @@ export function RightPanel({
   onClearPart,
   isBatchGenerating,
   onCheckPart,
+  onRebuildPart,
   onAssembleScript,
   hasSupervisorReport,
   autopilotState
@@ -514,6 +516,7 @@ export function RightPanel({
              onClearPart={onClearPart}
              isBatchGenerating={isBatchGenerating}
              onCheckPart={onCheckPart}
+             onRebuildPart={onRebuildPart}
              onAssembleScript={() => {
                 onAssembleScript();
                 setActiveTab('full');

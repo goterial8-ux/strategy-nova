@@ -98,7 +98,7 @@ export interface PromptHistoryEntry {
   lockedStatus: boolean;
 }
 
-export type AutopilotStep = 'generate' | 'check' | 'repair' | 'recheck' | 'cooldown' | 'approved' | 'blocked';
+export type AutopilotStep = 'generate' | 'check' | 'soft_cleanup' | 'repair' | 'rebuild' | 'recheck' | 'cooldown' | 'approved' | 'blocked';
 
 export interface AutopilotState {
   enabled: boolean;
@@ -106,6 +106,8 @@ export interface AutopilotState {
   currentStep: AutopilotStep;
   retryAfterAt: number | null;
   repairAttemptsByPart: Record<number, number>;
+  rebuildAttemptsByPart: Record<number, number>;
+  cleanupAttemptsByPart: Record<number, number>;
   rateLimitAttempts: number;
   lastError: string | null;
   lastSupervisorReport: SupervisorReport | null;
@@ -7676,6 +7678,8 @@ export const INITIAL_STATE: ProjectState = {
     currentStep: 'generate',
     retryAfterAt: null,
     repairAttemptsByPart: {},
+    rebuildAttemptsByPart: {},
+    cleanupAttemptsByPart: {},
     rateLimitAttempts: 0,
     lastError: null,
     lastSupervisorReport: null
