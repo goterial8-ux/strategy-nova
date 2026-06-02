@@ -1004,8 +1004,7 @@ export default function App() {
             updateStageContent={(content) => {
               setStageContent(currentStageId, content);
               const currentStatus = state.stageStatuses[currentStageId];
-              const hasReport = !!state.supervisorReports[currentStageId];
-              if (currentStatus !== 'locked' && (currentStatus !== 'generated' || hasReport)) {
+              if (currentStatus !== 'locked') {
                 updateState({
                   stageStatuses: {
                     ...state.stageStatuses,
@@ -1035,6 +1034,7 @@ export default function App() {
             isBatchGenerating={isBatchGenerating}
             onCheckPart={handleCheckPart}
             onAssembleScript={handleAssembleScript}
+            hasSupervisorReport={!!state.supervisorReports[currentStageId]}
           />
           
           <SupervisorPanel 

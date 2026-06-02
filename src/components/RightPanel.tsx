@@ -98,6 +98,7 @@ interface RightPanelProps {
   isBatchGenerating: boolean;
   onCheckPart: (index: number) => void;
   onAssembleScript: () => void;
+  hasSupervisorReport?: boolean;
 }
 
 export function RightPanel({ 
@@ -122,7 +123,8 @@ export function RightPanel({
   onClearPart,
   isBatchGenerating,
   onCheckPart,
-  onAssembleScript
+  onAssembleScript,
+  hasSupervisorReport
 }: RightPanelProps) {
   
   const isExportStage = currentStageId === 'clean_export';
@@ -526,9 +528,13 @@ export function RightPanel({
               placeholder={stageStatus === 'not_started' ? `Click "Regenerate Stage" to create ${stageName.toLowerCase()}...` : "Edit content directly here..."}
             />
             {stageStatus !== 'locked' && stageStatus !== 'not_started' && (
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="bg-slate-100/90 text-[10px] uppercase font-bold tracking-widest px-2 py-1 text-slate-500 border border-slate-200">
-                  Manual edit active
+              <div className="absolute top-4 right-4 z-10">
+                <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-1 border shadow-sm rounded-sm ${
+                  hasSupervisorReport 
+                    ? "bg-slate-100 text-slate-600 border-slate-200" 
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                }`}>
+                  {hasSupervisorReport ? "✓ Checked & Stable" : "⚠️ Needs recheck after manual edit"}
                 </span>
               </div>
             )}
