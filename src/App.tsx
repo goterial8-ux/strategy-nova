@@ -515,37 +515,56 @@ export default function App() {
           };
         }
 
-        const shortQualityGateSummary = [
-          `=== QUALITY GATE SUMMARY ===`,
-          `Checked Stage: ${currentStageId}`,
-          `Status: ${report.status.toUpperCase()}`,
-          `What Passed: ${report.whatIsGood || 'None Specified'}`,
-          `Remaining Risks: ${report.problems.length > 0 ? report.problems.join(', ') : 'None detected'}`,
-          `Next Safe Action: ${report.canContinue ? 'Approve & lock this stage to proceed.' : (report.requiredFixes.join(', ') || 'Repair and check again.')}`
-        ].join('\n');
-        
-        const newHistoryEntry = {
-            id: Date.now().toString(),
-            stageId: currentStageId,
-            promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
-            inputDataSummary: `Analyze output for ${currentStageId}`,
-            outputPreview: `${JSON.stringify(report, null, 2)}\n\n${shortQualityGateSummary}`,
-            createdAt: Date.now(),
-            supervisorStatus: report.status,
-            repairApplied: false,
-            lockedStatus: false
-        };
+        const stageContent = getStageContent(currentStageId);
+        let mergedReport = report;
 
-        updateState({
-          supervisorReports: { ...state.supervisorReports, [currentStageId]: report },
-          promptHistory: [newHistoryEntry, ...state.promptHistory]
+        // Apply robust stage constraints
+        return import('./lib/stageValidation').then((mod) => {
+          const { validateStageContent, mergeWithStageValidation } = mod;
+          const localVal = validateStageContent(stageContent, currentStageId as any, state);
+          mergedReport = mergeWithStageValidation(report, localVal);
+
+          // existing script checks
+          if (currentStageId === 'script_writer' || currentStageId === 'clean_export') {
+            const scope = currentStageId === 'clean_export' ? 'clean_export' : 'script_part';
+            const localScriptVal = validateScriptText(stageContent, scope);
+            mergedReport = mergeSupervisorReportWithValidation(mergedReport, localScriptVal);
+          }
+
+          const shortQualityGateSummary = [
+            `=== QUALITY GATE SUMMARY ===`,
+            `Checked Stage: ${currentStageId}`,
+            `AI Status: ${report.status.toUpperCase()}`,
+            `Local Validation OK: ${localVal.ok}`,
+            `Final Status: ${mergedReport.status.toUpperCase()}`,
+            `What Passed: ${mergedReport.whatIsGood || 'None Specified'}`,
+            `Remaining Risks: ${mergedReport.problems.length > 0 ? mergedReport.problems.join(', ') : 'None detected'}`,
+            `Next Safe Action: ${mergedReport.canContinue ? 'Approve & lock this stage to proceed.' : (mergedReport.requiredFixes.join(', ') || 'Repair and check again.')}`
+          ].join('\n');
+          
+          const newHistoryEntry = {
+              id: Date.now().toString(),
+              stageId: currentStageId,
+              promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
+              inputDataSummary: `Analyze output for ${currentStageId}`,
+              outputPreview: `${JSON.stringify(mergedReport, null, 2)}\n\n${shortQualityGateSummary}`,
+              createdAt: Date.now(),
+              supervisorStatus: mergedReport.status,
+              repairApplied: false,
+              lockedStatus: false
+          };
+
+          updateState({
+            supervisorReports: { ...state.supervisorReports, [currentStageId]: mergedReport },
+            promptHistory: [newHistoryEntry, ...state.promptHistory]
+          });
+          
+          if (mergedReport.canContinue && mergedReport.status === 'ok') {
+            updateStageStatus(currentStageId, 'generated');
+          } else {
+            updateStageStatus(currentStageId, 'needs_repair');
+          }
         });
-        
-        if (report.canContinue) {
-          updateStageStatus(currentStageId, 'generated');
-        } else {
-          updateStageStatus(currentStageId, 'needs_repair');
-        }
       })
       .catch(err => {
         console.error("Analysis failed:", err);
@@ -595,17 +614,25 @@ export default function App() {
         }
 
         let mergedReport = aiReport;
+
+        const mod = await import('./lib/stageValidation');
+        const { validateStageContent, mergeWithStageValidation } = mod;
+        const localVal = validateStageContent(textOutput, currentStageId as any, state);
+        mergedReport = mergeWithStageValidation(aiReport, localVal);
+
         // For script_writer or clean_export, also apply local validateScriptText checks before allowing approval
         if (currentStageId === 'script_writer' || currentStageId === 'clean_export') {
           const scope = currentStageId === 'clean_export' ? 'clean_export' : 'script_part';
-          const localVal = validateScriptText(textOutput, scope);
-          mergedReport = mergeSupervisorReportWithValidation(aiReport, localVal);
+          const localScriptVal = validateScriptText(textOutput, scope);
+          mergedReport = mergeSupervisorReportWithValidation(mergedReport, localScriptVal);
         }
 
         const shortQualityGateSummary = [
           `=== QUALITY GATE SUMMARY (AFTER REPAIR) ===`,
           `Checked Stage: ${currentStageId}`,
-          `Status: ${mergedReport.status.toUpperCase()}`,
+          `AI Status: ${aiReport.status.toUpperCase()}`,
+          `Local Validation OK: ${localVal.ok}`,
+          `Final Status: ${mergedReport.status.toUpperCase()}`,
           `What Passed: ${mergedReport.whatIsGood || 'None Specified'}`,
           `Remaining Risks: ${mergedReport.problems.length > 0 ? mergedReport.problems.join(', ') : 'None detected'}`,
           `Next Safe Action: ${mergedReport.canContinue ? 'Approve & lock this stage to proceed.' : (mergedReport.requiredFixes.join(', ') || 'Repair and check again.')}`
