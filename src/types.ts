@@ -148,12 +148,66 @@ export const STAGES: { id: StageId; name: string }[] = [
 
 export const INITIAL_PROMPT_REGISTRY: PromptRegistry = {
   stageZeroIdeaMarketPrompt: `=== STAGE ZERO: IDEA MARKET ===
-Analyze raw idea if provided.
-Analyze competitor/reference style as abstract market DNA.
-Generate six to eight original idea candidates if ideaMode is generate_from_references.
-Pick recommended idea.
-Output "Pasteable Raw Idea For Stage One".
-Never copy competitor titles, plots, scenes, names, powers, worlds, or unique twists.`,
+You are an expert content strategist, manga recap writer, and creative director. Your task is to analyze the market, reference script style DNA, and develop or generate original, high-performing video script ideas for the recap genre.
+
+The active mode is: {{IDEA_MODE}}
+
+=== OUR GENRE AND TARGET AUDIENCE ===
+We create high-retention survival, base-building, escape-crafting, or system-building manga-manhwa YouTube review-recap style video scripts.
+We MUST strictly enforce:
+1. Fast, gripping, immediate hook (hooks the viewer in first 2 seconds)
+2. Weak start / mortal base threat (protagonist stands on the brink of death, exposure, or social doom)
+3. Direct, satisfying, earned struggle or face-slap payoffs (the protagonist uses observation, system-building, or wits, rather than magical unearned leaps)
+4. Unpredictable twists, layered traps, smart adversaries (opponents are cunning, winning is hard-earned)
+5. Strict first-person voice.
+
+=== REFERENCE STYLE AND MATERIAL DNA ===
+We learn from style, structure, formatting, pacing, and intensity benchmarks—NEVER by plagiarism.
+You are strictly FORBIDDEN from copying competitor titles, plot lines, names, specific worlds, mechanics, exact scenes, specific weapons/powers, or unique twists. You must only extract abstract style DNA, pacing structure, and level/progression dynamics.
+
+=== ABSTRACT STYLE DNA BLUEPRINT ===
+{{COMPETITOR_STYLE_BLUEPRINT}}
+
+=== BENCHMARKING REFERENCE SCRIPTS ===
+{{COMPETITOR_REFERENCE_EXAMPLES}}
+
+=== FORBIDDEN ELEMENTS TO IGNORE / AVOID ===
+{{FORBIDDEN_ELEMENTS}}
+
+=== TARGET GENRE ===
+{{GENRE}}
+
+=== DIRECTIVES FOR OPERATION MODE ===
+
+--- MODE A: develop_raw_idea ---
+If the active mode is "develop_raw_idea", you must:
+1. Thoroughly parse and evaluate the user's Raw Idea below.
+Raw Idea: {{RAW_IDEA}}
+2. Strengthen and expand this raw idea:
+   - Maximize hook potential and make the opening sequence far more shocking or immediate.
+   - Improve niche fit: align the premise with high-performance survival/strategy/base-building recap tropes.
+   - Scale up progression potential: lay out the clear path for stages of upgrades, technology/survival level tiers, and character progression.
+   - Maximize face-slap and confrontation design: elevate tension from arrogant antagonists and outline high-impact payoffs.
+3. Synthesize your analysis.
+4. Output a clearly marked segment called: "Pasteable Raw Idea For Stage One". It must contain the complete, fortified raw premise and title candidate in detail so the user can easily copy and paste it into Stage One. Keep it in the Russian language.
+
+--- MODE B: generate_from_references ---
+If the active mode is "generate_from_references", you must:
+1. Scan the abstract reference style DNA and benchmark examples above.
+2. Generate exactly six (6) to eight (8) original, highly creative idea candidates. Each candidate must feature:
+   - A captivating title.
+   - A unique, extremely engaging survival, base-building, or crafting mechanic set in a distinctive context.
+   - A compelling first-person narrator protagonist concept and distinct weak position / starting threat.
+   - Clear escalation tiers (Phase 1, Phase 2, Phase 3 progression path).
+   - High face-slap and dramatic standoff potential.
+3. Recommend the single strongest candidate, justifying why it has the best audience appeal and retention potential.
+4. Output a summary and the candidate list.
+5. Generate a finalized formatted option as: "Pasteable Raw Idea For Stage One" featuring the recommended premise, completely translated and detailed in the Russian language.
+
+=== PERSISTENT GLOBAL INSTRUCTIONS ===
+{{GLOBAL_RULES}}
+
+Prepare your response in a highly professional, well-formatted markdown style. Planning stages must be written in the Russian language.`,
   stageZeroIdeaMarketExampleResponse: `Here are 6 recommended ideas...`,
   globalRulesPrompt: `=== UNIVERSAL DRIFT PREVENTION ===
 These are silent quality guardrails, not a story formula.

@@ -80,6 +80,7 @@ export function ScriptWriterPanel({
   const completedParts = parts.filter(p => p.draftText && p.draftText.length > 0).length;
   const totalParts = parts.length;
   const progressPercent = (completedParts / totalParts) * 100;
+  const allApproved = parts.length > 0 && parts.every(p => p.status === 'approved');
 
   return (
     <div className="flex-1 overflow-y-auto flex flex-col gap-4 mt-4 relative">
@@ -266,10 +267,16 @@ export function ScriptWriterPanel({
           </div>
         );
       })}
-      <div className="pt-4 pb-12 flex justify-center">
+      <div className="pt-4 pb-12 flex flex-col items-center gap-2">
+         {!allApproved && (
+           <div className="text-xs text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-4 py-2 rounded shadow-sm text-center">
+             ⚠️ All script parts must pass Check & Approve before assembly.
+           </div>
+         )}
          <button 
            onClick={onAssembleScript} 
-           disabled={completedParts < totalParts}
+           disabled={!allApproved}
+           title={!allApproved ? "All script parts must pass Check & Approve before assembly." : "Assemble Full Script"}
            className="px-8 py-3 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
          >
            <Layers className="w-4 h-4" /> Assemble Full Script

@@ -312,12 +312,12 @@ export default function App() {
         .then(() => {
           setState(INITIAL_STATE);
           stateRef.current = INITIAL_STATE;
-          setCurrentStageId('raw_idea');
+          setCurrentStageId('idea_market');
         })
         .catch(() => {
           setState(INITIAL_STATE);
           stateRef.current = INITIAL_STATE;
-          setCurrentStageId('raw_idea');
+          setCurrentStageId('idea_market');
         });
     }
   };
@@ -526,55 +526,78 @@ export default function App() {
   };
 
   const handleApplyRepair = () => {
-    import('./lib/PromptBuilder').then(({ buildRepairPrompt }) => {
+    import('./lib/PromptBuilder').then(async ({ buildRepairPrompt, buildSupervisorPrompt }) => {
       const mockReport = state.supervisorReports[currentStageId];
       const promptUsed = buildRepairPrompt(currentStageId, getStageContent(currentStageId), mockReport, state);
       
       setIsGenerating(true);
-      fetchWithRetry('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptUsed, type: 'text', stageId: currentStageId })
-      })
-      .then(data => {
+      try {
+        const data = await fetchWithRetry('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: promptUsed, type: 'text', stageId: currentStageId })
+        });
+        
         const textOutput = data.text;
         setStageContent(currentStageId, textOutput);
         
-        const okReport: SupervisorReport = {
-          status: 'ok',
-          whatIsGood: 'Content aligns well with requirements.',
-          problems: [],
-          requiredFixes: [],
-          recommendation: 'Safe to proceed.',
-          canContinue: true
-        };
+        // Immediately run supervisor analysis again on the repaired output
+        const supervisorPrompt = buildSupervisorPrompt(currentStageId, textOutput, state);
+        const analyzeData = await fetchWithRetry('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: supervisorPrompt, type: 'supervisor', stageId: currentStageId })
+        });
+        
+        let aiReport = analyzeData.parsed as SupervisorReport;
+        if (!aiReport) {
+          aiReport = {
+            status: 'needs_serious_repair',
+            whatIsGood: '',
+            problems: ['AI supervisor report could not be parsed after repair.'],
+            requiredFixes: ['Re-generate or repair the stage content.'],
+            recommendation: 'Check failed. Missing supervisor report response.',
+            canContinue: false,
+          };
+        }
+
+        let mergedReport = aiReport;
+        // For script_writer or clean_export, also apply local validateScriptText checks before allowing approval
+        if (currentStageId === 'script_writer' || currentStageId === 'clean_export') {
+          const scope = currentStageId === 'clean_export' ? 'clean_export' : 'script_part';
+          const localVal = validateScriptText(textOutput, scope);
+          mergedReport = mergeSupervisorReportWithValidation(aiReport, localVal);
+        }
 
         const newHistoryEntry = {
             id: Date.now().toString(),
             stageId: currentStageId,
             promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
-            inputDataSummary: `Repair output for ${currentStageId}`,
-            outputPreview: textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : ''),
+            inputDataSummary: `Repair output & Re-analysis for ${currentStageId}`,
+            outputPreview: `[OUTPUT PREVIEW]:\n${textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : '')}\n\n[SUPERVISOR REPORT]:\n${JSON.stringify(mergedReport, null, 2)}`,
             createdAt: Date.now(),
-            supervisorStatus: 'ok' as const,
+            supervisorStatus: mergedReport.status,
             repairApplied: true,
             lockedStatus: false
         };
 
         updateState({
-          supervisorReports: { ...state.supervisorReports, [currentStageId]: okReport },
+          supervisorReports: { ...state.supervisorReports, [currentStageId]: mergedReport },
           promptHistory: [newHistoryEntry, ...state.promptHistory]
         });
-        updateStageStatus(currentStageId, 'generated'); // Back to generated (repaired)
-      })
-      .catch(err => {
+
+        if (mergedReport.canContinue && mergedReport.status === 'ok') {
+          updateStageStatus(currentStageId, 'generated'); // Set back to generated only if solid
+        } else {
+          updateStageStatus(currentStageId, 'needs_repair');
+        }
+      } catch (err: any) {
         console.error("Repair failed:", err);
         setWarningMessage(err.message || 'Error occurred during repair.');
         setTimeout(() => setWarningMessage(null), 5000);
-      })
-      .finally(() => {
+      } finally {
         setIsGenerating(false);
-      });
+      }
     });
   };
 
@@ -800,9 +823,20 @@ export default function App() {
         const analyzeData = await fetchWithRetry('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: promptUsed, type: 'json' })
+          body: JSON.stringify({ prompt: promptUsed, type: 'supervisor' })
         });
-        const aiReport = analyzeData.json as SupervisorReport;
+        
+        let aiReport = analyzeData.parsed as SupervisorReport;
+        if (!aiReport) {
+          aiReport = {
+            status: 'needs_serious_repair',
+            whatIsGood: '',
+            problems: ['AI supervisor report is missing or failed to parse.'],
+            requiredFixes: ['Re-generate this part.'],
+            recommendation: 'Validation failed due to empty supervisor response.',
+            canContinue: false
+          };
+        }
 
         // Step 2: Local Validation
         const localValidation = validateScriptText(part.draftText, 'script_part');
@@ -819,8 +853,9 @@ export default function App() {
         
         const reportStr = JSON.stringify(mergedReport);
         const hasDrift = reportStr.includes('GENRE DRIFT DETECTED');
+        const isApproved = mergedReport.status === 'ok' && mergedReport.canContinue === true && !hasDrift;
         
-        if (!mergedReport.canContinue || hasDrift || mergedReport.status !== 'ok') {
+        if (!isApproved) {
           updateScriptPart(index, { status: 'needs_repair', validationIssues: mergedReport.problems });
           
           if (attempt >= maxAttempts) {
@@ -868,6 +903,12 @@ export default function App() {
   };
   
   const handleAssembleScript = () => {
+    const allApproved = state.scriptParts.length > 0 && state.scriptParts.every(p => p.status === 'approved');
+    if (!allApproved) {
+      setWarningMessage("All script parts must pass Check & Approve before assembly.");
+      setTimeout(() => setWarningMessage(null), 5000);
+      return;
+    }
     const assembledContent = state.scriptParts.map(p => `## Part ${p.partNumber}: ${p.partTitle}\n\n${p.draftText}`).join('\n\n');
     updateState({ fullScript: assembledContent });
   };

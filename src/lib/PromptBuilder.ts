@@ -147,6 +147,12 @@ export function buildPrompt(stageId: StageId, state: ProjectState): string {
   switch (stageId) {
     case 'idea_market':
       let stage0Prompt = state.promptRegistry.stageZeroIdeaMarketPrompt || '';
+      stage0Prompt = stage0Prompt.replaceAll('{{IDEA_MODE}}', state.ideaMode || 'develop_raw_idea');
+      stage0Prompt = stage0Prompt.replaceAll('{{RAW_IDEA}}', state.rawIdea || 'None');
+      stage0Prompt = stage0Prompt.replaceAll('{{GENRE}}', state.genre || 'None');
+      stage0Prompt = stage0Prompt.replaceAll('{{FORBIDDEN_ELEMENTS}}', state.forbiddenElements || 'None');
+      stage0Prompt = stage0Prompt.replaceAll('{{COMPETITOR_REFERENCE_EXAMPLES}}', referenceExamples(state));
+      stage0Prompt = stage0Prompt.replaceAll('{{COMPETITOR_STYLE_BLUEPRINT}}', authorialStyleBlock());
       stage0Prompt = stage0Prompt.replaceAll('{{GLOBAL_RULES}}', state.promptRegistry.globalRulesPrompt);
       prompt += stage0Prompt + `\n\n` + (state.promptRegistry.stageZeroIdeaMarketExampleResponse || '');
       break;

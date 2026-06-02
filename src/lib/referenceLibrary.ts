@@ -9,7 +9,7 @@ export const BUILT_IN_REFERENCE_FILES: BuiltInReferenceFile[] = [
   { label: 'Strategy Reference 3', url: '/reference-scripts/strategy-3.txt' },
   { label: 'Strategy Reference 4', url: '/reference-scripts/strategy-4.txt' },
   { label: 'Strategy Reference 5', url: '/reference-scripts/strategy-5.txt' },
-  { label: 'Strategy Reference 6', url: '/reference-scripts/strategy-6.txt' },
+  { label: 'Strategy Reference 6 (Short Fragment)', url: '/reference-scripts/strategy-6.txt' },
 ];
 
 const MAX_REFERENCE_CHARS = 6_000;
