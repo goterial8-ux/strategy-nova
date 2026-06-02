@@ -135,6 +135,24 @@ export function LeftPanel({ state, updateState, onResetProject, saveStatus, onLo
           />
         </div>
 
+        <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-[2px] flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-tight flex items-center gap-1.5">
+              <span>✍️ Claude Script Writer</span>
+            </span>
+            <input
+              id="claudeLiteToggle"
+              type="checkbox"
+              checked={state.claudeLiteMode !== false}
+              onChange={e => updateState({ claudeLiteMode: e.target.checked })}
+              className="w-4 h-4 text-indigo-600 border-indigo-200 rounded focus:ring-indigo-500 cursor-pointer"
+            />
+          </div>
+          <p className="text-[10px] text-indigo-700/80 leading-normal">
+            <strong>Lite Mode Enabled:</strong> Claude uses short, high-signal drafting prompts. Heavy rules and multi-step supervisor repair loops are stripped to keep prose clean & authorial.
+          </p>
+        </div>
+
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-[2px] flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-800 uppercase tracking-tight">Strategy Library</span>

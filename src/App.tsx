@@ -697,6 +697,7 @@ export default function App() {
             currentPart.draftText,
             currentAP.lastSupervisorReport as SupervisorReport,
             stateRef.current,
+            currentPart.partNumber,
           );
           const repairData = await fetchWithRetry("/api/generate", {
             method: "POST",
@@ -1836,6 +1837,7 @@ export default function App() {
             part.draftText,
             mergedReport,
             currentState,
+            part.partNumber,
           );
           const repairData = await fetchWithRetry("/api/generate", {
             method: "POST",

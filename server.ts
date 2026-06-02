@@ -187,6 +187,44 @@ async function generateContent(prompt: string, expectJson: boolean = false, stag
   }
 }
 
+async function generateClaudeContent(prompt: string): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY environment variable is required but missing.");
+  }
+  const model = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
+
+  console.log(`[Anthropic] Requesting messages with model ${model}...`);
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: 12000,
+      temperature: 0.7,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`[Anthropic Error] Direct API call failed with status ${response.status}:`, errText);
+    throw new Error(`Anthropic API call failed: ${errText}`);
+  }
+
+  const data = await response.json() as { content?: Array<{ type: string; text?: string }> };
+  if (data && data.content && data.content[0] && typeof data.content[0].text === "string") {
+    console.log(`[Anthropic] Success with ${model}`);
+    return data.content[0].text;
+  }
+
+  throw new Error("Invalid or empty response structure from Anthropic Claude API.");
+}
+
 // Unified generate/RPC route
 async function handleGenerate(req: express.Request, res: express.Response) {
   console.log("POST /api/generate called");
@@ -198,7 +236,13 @@ async function handleGenerate(req: express.Request, res: express.Response) {
 
   try {
     const isSupervisor = type === "supervisor";
-    const textOutput = await generateContent(prompt, isSupervisor, isSupervisor ? "supervisor" : stageId);
+    
+    let textOutput: string;
+    if (stageId === "script_writer" && process.env.SCRIPT_WRITER_PROVIDER === "anthropic") {
+      textOutput = await generateClaudeContent(prompt);
+    } else {
+      textOutput = await generateContent(prompt, isSupervisor, isSupervisor ? "supervisor" : stageId);
+    }
 
     let parsedResult = null;
     if (isSupervisor) {

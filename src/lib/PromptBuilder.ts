@@ -705,6 +705,9 @@ Do not use sci-fi facility language. Do not write about tests, proctors, plasma 
   const voiceLockBlock = `\n\n=== STRICT WRITER VOICE LOCK ===\n${SCRIPT_VOICE_RULES_CONTRACT}`;
   stage5Prompt += voiceLockBlock;
 
+  // Add the CURRENT PART ANCHOR
+  stage5Prompt += buildCurrentPartAnchor(partNumber, state);
+
   return stage5Prompt;
 }
 
@@ -728,6 +731,7 @@ export function buildRepairPrompt(
   brokenOutput: string,
   report: any,
   state: ProjectState,
+  partNumber?: number,
 ): string {
   const lang =
     stageId === "script_writer" || stageId === "clean_export"
@@ -809,7 +813,12 @@ export function buildRepairPrompt(
     cleanedReport.requiredFixes = Array.from(new Set(filteredFixes));
   }
 
-  const strictInstructions = `=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${contract}\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\nSTRICT INSTRUCTION: Preserve plot, facts, names, and scene order exactly. Repair style and length only.`;
+  let extraAnchor = "";
+  if (stageId === "script_writer" && partNumber !== undefined) {
+    extraAnchor = buildCurrentPartAnchor(partNumber, state);
+  }
+
+  const strictInstructions = `=== AUTHORIAL STYLE BLOCK ===\n${authorialStyleBlock()}\n\n=== SCRIPT FORMATTING CONTRACT ===\n${contract}\n\n=== NARRATIVE DYNAMICS CONTRACT ===\n${NARRATIVE_DYNAMICS_CONTRACT}\n\nSTRICT INSTRUCTION: Preserve plot, facts, names, and scene order exactly. Repair style and length only.${extraAnchor}`;
 
   return `=== TARGETED REPAIR ===\n${state.promptRegistry.repairPrompt}\n\n${strictInstructions}\n\nBROKEN OUTPUT:\n${brokenOutput}\n\nSUPERVISOR REPORT:\n${JSON.stringify(cleanedReport, null, 2)}\n\nIMPORTANT: Output the repaired version in ${lang}. Ensure all structural rules are preserved.`;
 }
@@ -936,6 +945,8 @@ I didn't answer his bait. I grabbed a sharp clam shell, sliced a long vine, and 
 - The output must contain ONLY the flowing script draft paragraphs, ready for a seamless voice narration read.
 - Ensure that the narration contains no technical or scientific residue (avoid words like: optimized, parameters, calculated trajectory, resource loops). Replace with simple physical descriptions.`;
 
+  const anchorBlock = buildCurrentPartAnchor(partNumber, state);
+
   return `=== CLAUDE SCRIPT WRITER LITE MODE ===
 
 ### 1. LOCKED STORY CONTRACT
@@ -963,5 +974,103 @@ ${styleSample}
 ### 8. MINIMAL HARD RULES
 ${minimalHardRules}
 
+${anchorBlock}
+
 Begin drafting the text for Part ${partNumber} below:`;
+}
+
+export function buildCurrentPartAnchor(
+  partNumber: number,
+  state: ProjectState,
+): string {
+  const part = state.scriptParts.find((p) => p.partNumber === partNumber);
+  const partTitle = part?.partTitle || `Part ${partNumber}`;
+  const sceneCards = part?.sourceSceneCards || "No scene cards specified.";
+
+  // Tone of this part: infer briefly from current part title and current part scene cards.
+  let toneOfPart = "Fast, visual, tense, practical, with humiliation/reversal energy.";
+  const titleLower = partTitle.toLowerCase();
+  const sceneLower = sceneCards.toLowerCase();
+  if (
+    titleLower.includes("combat") ||
+    titleLower.includes("fight") ||
+    titleLower.includes("confront") ||
+    sceneLower.includes("punch") ||
+    sceneLower.includes("fight")
+  ) {
+    toneOfPart = "High-tension physical clash, rapid-fire strikes, sharp emotional payout, satisfying face-slap.";
+  } else if (
+    titleLower.includes("build") ||
+    titleLower.includes("craft") ||
+    titleLower.includes("trap") ||
+    sceneLower.includes("weave") ||
+    sceneLower.includes("build") ||
+    sceneLower.includes("water") ||
+    sceneLower.includes("fish")
+  ) {
+    toneOfPart = "Intense practical craft, step-by-step physical survival, high-satisfaction mechanical payoff, shut up the doubters.";
+  } else if (
+    titleLower.includes("revelation") ||
+    titleLower.includes("discovery") ||
+    titleLower.includes("secret")
+  ) {
+    toneOfPart = "Suspenseful, calculated, sharp psychological edge, quiet intensity building to an eye-opening twist.";
+  }
+
+  // Previous continuity: use only approved previous parts.
+  const previousParts = state.scriptParts.filter(
+    (p) => p.partNumber < partNumber && p.status === "approved" && p.draftText && p.draftText.length > 0,
+  );
+
+  let previousInterlock = "None. This is the first part.";
+  if (previousParts.length > 0) {
+    const lastPart = previousParts[previousParts.length - 1];
+    const compactSummary = previousParts
+      .map((p) => `Part ${p.partNumber} ("${p.partTitle}")`)
+      .join(" -> ");
+
+    let lastSegment = "";
+    if (lastPart.draftText) {
+      const paragraphs = lastPart.draftText
+        .split("\n")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+      if (paragraphs.length > 0) {
+        lastSegment = paragraphs[paragraphs.length - 1];
+      }
+    }
+
+    previousInterlock = `- One compact summary of previous approved parts: ${compactSummary}\n- Last paragraph of the previous approved part (${lastPart.partNumber}):\n  "${lastSegment}"`;
+  }
+
+  return `\n\n=== CURRENT PART ANCHOR ===
+1. GENRE
+Strategy survival / manga-manhwa recap / first-person survival progression.
+
+2. TONE OF THIS PART
+${toneOfPart}
+
+3. TASK OF THIS PART
+Write only the current part.
+Follow only the approved scene cards for this part.
+Do not jump ahead.
+Do not invent future events.
+
+4. PREVIOUS CONTINUITY
+${previousInterlock}
+
+5. STYLE SAMPLE
+I did not argue with Ren. I let him laugh while the tide pulled the first fish trap under the rocks. Ten minutes later, his smile disappeared.
+
+The bottle filled drop by drop under the plastic sheet. It looked stupid, almost pathetic. But by noon, I had clean water, and Ren had a dry throat.
+
+When the storm hit, his shelter folded first. Mine bent, shook, and stayed standing. That was the moment Airi stopped looking at him.
+
+6. FORBIDDEN FOR THIS PART
+Do not use sci-fi/facility/test/proctor/dungeon language.
+Do not use technical report language.
+Do not write like a science explanation.
+Do not copy competitor plots.
+Do not write a summary.
+Write visual first-person narration.`;
 }
