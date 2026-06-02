@@ -441,15 +441,46 @@ function worstStatus(
 export function mergeSupervisorReportWithValidation(
   report: SupervisorReport,
   validation: ScriptValidationResult,
+  isClaudeLite?: boolean,
 ): SupervisorReport {
   if (validation.ok && validation.warnings.length === 0) return report;
+
+  const hardBlockerCodes = isClaudeLite
+    ? [
+        "paragraph_too_short_hard",
+        "missing_first_person_voice",
+        "mostly_third_person_voice",
+        "hard_story_drift",
+        "technical_residue",
+        "scientific_technical_tone",
+      ]
+    : [
+        "paragraph_too_short_hard",
+        "paragraph_too_long_hard",
+        "missing_first_person_voice",
+        "mostly_third_person_voice",
+        "duplicate_paragraph",
+        "generic_ai_cliche",
+        "robotic_sequence_rhythm",
+        "repetitive_flat_openings",
+        "hard_story_drift",
+        "scientific_technical_tone",
+      ];
+
+  const effectiveFailures = validation.failures.filter((issue) =>
+    hardBlockerCodes.includes(issue.code),
+  );
+  const effectiveWarnings = [
+    ...validation.warnings,
+    ...validation.failures.filter((issue) => !hardBlockerCodes.includes(issue.code)),
+  ];
 
   // Group and deduplicate paragraph issues to prevent multi-line repetition
   const otherProblems: string[] = [];
   let shortHardCount = 0;
   let longHardCount = 0;
 
-  validation.failures.forEach((issue) => {
+  effectiveFailures.forEach((issue) => {
     if (issue.code === "paragraph_too_short_hard") {
       shortHardCount++;
     } else if (issue.code === "paragraph_too_long_hard") {
@@ -462,16 +493,16 @@ export function mergeSupervisorReportWithValidation(
   const validationProblems = [...otherProblems];
   if (shortHardCount > 0 || longHardCount > 0) {
     validationProblems.push(
-      `[paragraph_length_blocker] Paragraph length issue: ${shortHardCount} paragraphs are too short (<100 chars), ${longHardCount} paragraphs are too long (>235 chars). Fix all to 120-220 range.`,
+      `[paragraph_length_blocker] Paragraph length issue: ${shortHardCount} paragraphs are too short (<100 chars)${longHardCount > 0 ? `, ${longHardCount} paragraphs are too long (>235 chars)` : ""}. Fix to 120-220 range.`,
     );
   }
 
-  const warnProblems = validation.warnings.filter(
-    (w) => w.code === "paragraph_length_soft",
+  const warnProblems = effectiveWarnings.filter(
+    (w) => w.code === "paragraph_length_soft" || w.code === "paragraph_too_long_hard" || w.code === "paragraph_length_blocker"
   );
   if (warnProblems.length > 0) {
     validationProblems.push(
-      `[paragraph_length_soft] Paragraph length warning: ${warnProblems.length} paragraphs are slightly outside the target range (221-235 characters). Clean them up with compact trimming.`,
+      `[paragraph_length_soft] Paragraph length warning: ${warnProblems.length} paragraphs are slightly outside the target range. Clean them up with compact trimming.`,
     );
   }
 
@@ -482,7 +513,7 @@ export function mergeSupervisorReportWithValidation(
     );
   }
 
-  validation.failures.forEach((issue) => {
+  effectiveFailures.forEach((issue) => {
     if (
       issue.code === "paragraph_too_short_hard" ||
       issue.code === "paragraph_too_long_hard"
@@ -539,39 +570,11 @@ export function mergeSupervisorReportWithValidation(
   // Generate unique fixes
   const uniqueFixes = Array.from(new Set(validationFixes));
 
-  const localStatus: SupervisorStatus = validation.failures.some((issue) =>
-    [
-      "paragraph_too_short_hard",
-      "paragraph_too_long_hard",
-      "missing_first_person_voice",
-      "mostly_third_person_voice",
-      "duplicate_paragraph",
-      "generic_ai_cliche",
-      "robotic_sequence_rhythm",
-      "repetitive_flat_openings",
-      "hard_story_drift",
-      "scientific_technical_tone",
-    ].includes(issue.code),
-  )
+  const localStatus: SupervisorStatus = effectiveFailures.length > 0
     ? "needs_serious_repair"
-    : validation.failures.length > 0
-      ? "needs_small_repair"
-      : "ok";
+    : "ok";
 
-  const hasLocalHardBlockers = validation.failures.some((f) =>
-    [
-      "paragraph_too_short_hard",
-      "paragraph_too_long_hard",
-      "missing_first_person_voice",
-      "mostly_third_person_voice",
-      "duplicate_paragraph",
-      "generic_ai_cliche",
-      "robotic_sequence_rhythm",
-      "repetitive_flat_openings",
-      "hard_story_drift",
-      "scientific_technical_tone",
-    ].includes(f.code),
-  );
+  const hasLocalHardBlockers = effectiveFailures.length > 0;
 
   const aiProblems = report.problems || [];
   const aiFixes = report.requiredFixes || [];
@@ -626,8 +629,7 @@ export function mergeSupervisorReportWithValidation(
 
   const hasHardBlockers =
     hasLocalHardBlockers ||
-    aiHasOtherProblemsThanLength ||
-    aiHasOtherFixesThanLength;
+    (!isClaudeLite && (aiHasOtherProblemsThanLength || aiHasOtherFixesThanLength));
 
   const finalStatus = hasHardBlockers
     ? worstStatus(report.status || "ok", localStatus)

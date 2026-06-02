@@ -581,6 +581,9 @@ export function buildPartPrompt(
   partNumber: number,
   state: ProjectState,
 ): string {
+  if (state.claudeLiteMode) {
+    return buildClaudeLitePartPrompt(partNumber, state);
+  }
   const part = state.scriptParts.find((p) => p.partNumber === partNumber);
 
   let stage5Prompt = state.promptRegistry.stageFiveScriptWriterPrompt;
@@ -874,4 +877,91 @@ STRICT REBUILD INSTRUCTIONS:
 
 Original Part Prompt:
 ${partPrompt}`;
+}
+
+export function buildClaudeLitePartPrompt(
+  partNumber: number,
+  state: ProjectState,
+): string {
+  const part = state.scriptParts.find((p) => p.partNumber === partNumber);
+
+  // 1. Locked story contract, compat
+  const lockedContract = state.storyContract || "None specified.";
+
+  // 2. Approved story plan, compact
+  const storyPlanCompact = state.storyPlan || "None specified.";
+
+  // 3. Current part title and purpose
+  const currentPartTitle = part?.partTitle || `Part ${partNumber}`;
+  const purpose = `Write the full voiceover draft for Part ${partNumber}: "${currentPartTitle}". This is a crucial section of the overarching story plan, driving key progression.`;
+
+  // 4. Current part scene cards only
+  const currentPartSceneCards = part?.sourceSceneCards || "No scene cards specified.";
+
+  // 5. Summary of previous approved parts only
+  const previousParts = state.scriptParts.filter(
+    (p) => p.partNumber < partNumber && p.status === "approved" && p.draftText && p.draftText.length > 0,
+  );
+  const previousSummary = previousParts.length > 0
+    ? previousParts
+        .map(
+          (p) =>
+            `- Part ${p.partNumber}: "${p.partTitle}"\n  Content Preview:\n  ${p.draftText}`,
+        )
+        .join("\n\n")
+    : "None. This is the first part of the script.";
+
+  // 6. Short style DNA
+  const shortStyleDna = `- Write strictly in the first-person voice and perspective of our live protagonist ("I", "my", "we"). Keep it conversational, active, and immediate.
+- Fast, visual, emotional, and practical. Avoid descriptive fluff or clinical analysis.
+- Every paragraph should feel like an active, sequence-driven manga panel (representing one visual wave or camera shot).
+- No dry lectures. Incorporate any technical moves directly into intense physical actions and quick visual outcomes.
+- No sci-fi/dungeon/facility drift. Ground everything strictly on natural survival tactics and human conflict unless specifically authorized by the plan.
+- Prioritize story flow, suspense, emotional payoff, satisfying character clashes (face-slaps), and solid narrative continuity.`;
+
+  // 7. Short style sample, three to six paragraphs
+  const styleSample = `I looked down the edge of the jagged black cliff. The freezing tide was slamming against the sharp reef below like iron hammers. One bad slip, and I’d be nothing but a red smear on the stone. But staying at the top meant getting tracked down by those arrogant camp guards within an hour. I had to move now.
+
+I didn't waste breath arguing. I just pulled the canvas rucksack tighter against my shoulders, gripped a thick, prickly beach vine, and kicked off. The sharp fibers sliced deep into my damp palms, burning like fire. I clamped my teeth together, ignored the pain, and slid down the sheer cliff face line-by-line.
+
+With a heavy thud, my feet landed in the wet sand. Ten feet out into the surf, a small cluster of boulders formed a natural rock barrier, calm and shielded from the violent tide. Inside that circle, seawater pooled, trapping three fat, silver mackerel. This was my first clean protein source in three days.
+
+Behind me, a voice sneered from the trees. It was Ren, still looking at me with the same smug, arrogant smirk he wore back at the shelter. "Outstanding plan, genius. You crawled down a dangerous cliff just to freeze on a wet beach."
+
+I didn't answer his bait. I grabbed a sharp clam shell, sliced a long vine, and quickly wove a tight mesh fence across the rocky opening. When the tide pulled back, the water drained out completely, leaving the silver mackerel trapped and wriggling on the dry stones. Ren’s jaw went slack. His smug grin vanished instantly as he stared at the harvest in absolute silence.`;
+
+  // 8. Minimal hard rules
+  const minimalHardRules = `- All narrative blocks must be written strictly in English.
+- Use direct voiceover tone: no markdown section headers, no bullet lists, no stage directions, and no brackets of any form.
+- The output must contain ONLY the flowing script draft paragraphs, ready for a seamless voice narration read.
+- Ensure that the narration contains no technical or scientific residue (avoid words like: optimized, parameters, calculated trajectory, resource loops). Replace with simple physical descriptions.`;
+
+  return `=== CLAUDE SCRIPT WRITER LITE MODE ===
+
+### 1. LOCKED STORY CONTRACT
+${lockedContract}
+
+### 2. APPROVED STORY PLAN
+${storyPlanCompact}
+
+### 3. CURRENT PART TITLE & PURPOSE
+Title: ${currentPartTitle}
+Purpose: ${purpose}
+
+### 4. CURRENT PART SCENE CARDS ONLY
+${currentPartSceneCards}
+
+### 5. PREVIOUS APPROVED PARTS RECAP
+${previousSummary}
+
+### 6. STYLE DNA
+${shortStyleDna}
+
+### 7. SHAPED VOICE STYLE SAMPLE
+${styleSample}
+
+### 8. MINIMAL HARD RULES
+${minimalHardRules}
+
+Begin drafting the text for Part ${partNumber} below:`;
 }

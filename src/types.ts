@@ -148,6 +148,7 @@ export interface ProjectState {
   promptRegistry: PromptRegistry;
   promptHistory: PromptHistoryEntry[];
   useAvatars: boolean;
+  claudeLiteMode?: boolean;
   autopilotState: AutopilotState;
 }
 
@@ -7672,6 +7673,7 @@ export const INITIAL_STATE: ProjectState = {
   promptRegistry: INITIAL_PROMPT_REGISTRY,
   promptHistory: [],
   useAvatars: true,
+  claudeLiteMode: true,
   autopilotState: {
     enabled: false,
     currentPartIndex: 0,

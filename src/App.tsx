@@ -597,6 +597,7 @@ export default function App() {
           let mergedReport = validationMod.mergeSupervisorReportWithValidation(
             aiReport,
             localScriptVal,
+            stateRef.current.claudeLiteMode,
           );
 
           const isApproved =
@@ -617,7 +618,7 @@ export default function App() {
             });
           } else {
             const hasHardDrift = validationMod.detectHardDrift(localScriptVal, aiReport);
-            const nextStep = hasHardDrift
+            const nextStep = (hasHardDrift || stateRef.current.claudeLiteMode)
               ? "rebuild"
               : mergedReport.status === "needs_small_repair"
                 ? "soft_cleanup"
@@ -728,13 +729,14 @@ export default function App() {
         } else if (currentStep === "rebuild") {
           const attempts =
             currentAP.rebuildAttemptsByPart[currentPartIndex] || 0;
-          if (attempts >= 2) {
+          const maxRebuilds = stateRef.current.claudeLiteMode ? 1 : 2;
+          if (attempts >= maxRebuilds) {
             updateState({
               autopilotState: {
                 ...currentAP,
                 enabled: false,
                 currentStep: "blocked",
-                lastError: `Max rebuild attempts (2) exceeded for Part ${currentPart.partNumber}.`,
+                lastError: `Max rebuild attempts (${maxRebuilds}) exceeded for Part ${currentPart.partNumber}.`,
               },
             });
             setWarningMessage(
@@ -1233,6 +1235,7 @@ export default function App() {
               mergedReport = mergeSupervisorReportWithValidation(
                 mergedReport,
                 localScriptVal,
+                stateRef.current.claudeLiteMode,
               );
             }
 
@@ -1372,6 +1375,7 @@ export default function App() {
             mergedReport = mergeSupervisorReportWithValidation(
               mergedReport,
               localScriptVal,
+              stateRef.current.claudeLiteMode,
             );
           }
 
@@ -1798,6 +1802,7 @@ export default function App() {
         const mergedReport = mergeSupervisorReportWithValidation(
           aiReport,
           localValidation,
+          currentState.claudeLiteMode,
         );
 
         updateState({
@@ -1807,12 +1812,9 @@ export default function App() {
           },
         });
 
-        const reportStr = JSON.stringify(mergedReport);
-        const hasDrift = reportStr.includes("GENRE DRIFT DETECTED");
         const isApproved =
           mergedReport.status === "ok" &&
-          mergedReport.canContinue === true &&
-          !hasDrift;
+          mergedReport.canContinue === true;
 
         if (!isApproved) {
           updateScriptPart(index, {
