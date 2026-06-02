@@ -21,8 +21,8 @@ import {
   validationIssueSummary,
 } from "./lib/scriptValidation";
 
-function getScriptPartValidationPatch(draftText: string): Partial<ScriptPart> {
-  const validation = validateScriptText(draftText, "script_part");
+function getScriptPartValidationPatch(draftText: string, isClaudeLite?: boolean): Partial<ScriptPart> {
+  const validation = validateScriptText(draftText, "script_part", isClaudeLite);
   return {
     wordOrCharacterCount: validation.characterCount,
     avatarCount: validation.avatarCount,
@@ -392,6 +392,10 @@ export default function App() {
             dbState.marketResearch = "";
           }
           let needsUpdate = false;
+          if (dbState.claudeLiteMode === undefined) {
+            dbState.claudeLiteMode = true;
+            needsUpdate = true;
+          }
           if (dbState.autopilotState === undefined) {
             dbState.autopilotState = {
               enabled: false,
@@ -587,6 +591,7 @@ export default function App() {
           const localScriptVal = validateScriptText(
             stateRef.current.scriptParts[currentPartIndex].draftText,
             "script_part",
+            stateRef.current.claudeLiteMode !== false,
           );
           import("./lib/stageValidation").then((mod) => {
             const { mergeSupervisorReportWithValidation } = mod as any;
@@ -667,7 +672,7 @@ export default function App() {
           });
 
           const newText = cleanData.text;
-          const patch = getScriptPartValidationPatch(newText);
+          const patch = getScriptPartValidationPatch(newText, stateRef.current.claudeLiteMode !== false);
           updateScriptPart(currentPartIndex, {
             status: "generated",
             draftText: newText,
@@ -713,7 +718,7 @@ export default function App() {
           });
 
           const newText = repairData.text;
-          const patch = getScriptPartValidationPatch(newText);
+          const patch = getScriptPartValidationPatch(newText, stateRef.current.claudeLiteMode !== false);
           updateScriptPart(currentPartIndex, {
             status: "generated",
             draftText: newText,
@@ -767,7 +772,7 @@ export default function App() {
           });
 
           const newText = rebuildData.text;
-          const patch = getScriptPartValidationPatch(newText);
+          const patch = getScriptPartValidationPatch(newText, stateRef.current.claudeLiteMode !== false);
           updateScriptPart(currentPartIndex, {
             status: "generated",
             draftText: newText,
@@ -1235,11 +1240,15 @@ export default function App() {
                 currentStageId === "clean_export"
                   ? "clean_export"
                   : "script_part";
-              const localScriptVal = validateScriptText(stageContent, scope);
+              const localScriptVal = validateScriptText(
+                stageContent,
+                scope,
+                stateRef.current.claudeLiteMode !== false,
+              );
               mergedReport = mergeSupervisorReportWithValidation(
                 mergedReport,
                 localScriptVal,
-                stateRef.current.claudeLiteMode,
+                stateRef.current.claudeLiteMode !== false,
               );
             }
 
@@ -1375,11 +1384,15 @@ export default function App() {
               currentStageId === "clean_export"
                 ? "clean_export"
                 : "script_part";
-            const localScriptVal = validateScriptText(textOutput, scope);
+            const localScriptVal = validateScriptText(
+              textOutput,
+              scope,
+              stateRef.current.claudeLiteMode !== false,
+            );
             mergedReport = mergeSupervisorReportWithValidation(
               mergedReport,
               localScriptVal,
-              stateRef.current.claudeLiteMode,
+              stateRef.current.claudeLiteMode !== false,
             );
           }
 
@@ -1628,7 +1641,7 @@ export default function App() {
         lockedStatus: false,
       };
 
-      const validationPatch = getScriptPartValidationPatch(textOutput);
+      const validationPatch = getScriptPartValidationPatch(textOutput, state.claudeLiteMode !== false);
       updateScriptPart(index, {
         status: "generated",
         draftText: textOutput,
@@ -1731,7 +1744,7 @@ export default function App() {
       });
 
       const newText = data.text;
-      const patch = getScriptPartValidationPatch(newText);
+      const patch = getScriptPartValidationPatch(newText, currentState.claudeLiteMode !== false);
       updateScriptPart(index, {
         status: "generated",
         draftText: newText,
@@ -1800,13 +1813,14 @@ export default function App() {
         const localValidation = validateScriptText(
           part.draftText,
           "script_part",
+          currentState.claudeLiteMode !== false,
         );
 
         // Step 3: Merge
         const mergedReport = mergeSupervisorReportWithValidation(
           aiReport,
           localValidation,
-          currentState.claudeLiteMode,
+          currentState.claudeLiteMode !== false,
         );
 
         updateState({
@@ -1853,7 +1867,7 @@ export default function App() {
           });
 
           const newText = repairData.text;
-          const patch = getScriptPartValidationPatch(newText);
+          const patch = getScriptPartValidationPatch(newText, currentState.claudeLiteMode !== false);
           updateScriptPart(index, {
             status: "generated",
             draftText: newText,
@@ -1867,7 +1881,7 @@ export default function App() {
           );
         } else {
           // Approved
-          const patch = getScriptPartValidationPatch(part.draftText);
+          const patch = getScriptPartValidationPatch(part.draftText, currentState.claudeLiteMode !== false);
           updateScriptPart(index, { status: "approved", ...patch });
           return true;
         }

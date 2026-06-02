@@ -175,6 +175,7 @@ function addIssue(
 export function validateScriptText(
   text: string,
   scope: ScriptValidationScope,
+  isClaudeLite: boolean = false,
 ): ScriptValidationResult {
   const paragraphs = splitParagraphs(text);
   const issues: ScriptValidationIssue[] = [];
@@ -273,7 +274,7 @@ export function validateScriptText(
       });
       if (matchedTechTerms.length > 0) {
         addIssue(issues, {
-          severity: "fail",
+          severity: isClaudeLite && matchedTechTerms.length < 2 ? "warn" : "fail",
           code: "scientific_technical_tone",
           message: `Paragraph ${paragraphNumber} contains unapproved scientific/technical terms: ${matchedTechTerms.join(", ")}. It sounds like a lab or system report. Replace with concrete physical actions or natural survival language.`,
           paragraphIndex: paragraphNumber,

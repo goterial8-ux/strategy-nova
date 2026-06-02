@@ -883,7 +883,7 @@ ${cleanReportText}
 STRICT REBUILD INSTRUCTIONS:
 1. Discard the failed version's text and vocabulary completely.
 2. Under no circumstances use any sci-fi facility or technical laboratory vocabulary (tests, proctors, plasma batteries, exoskeletons, toxic trenches, military armories, lasers, structural weak points, thermal signatures, conductive, optimized, energy sources, etc.).
-3. Stick strictly to natural island survival using yacht wreckage, natural resources, tides, shelter, tools, and tactical human conflict.
+3. Stick strictly to the approved story contract, approved story plan, and current part scene cards. Use only the current project's approved setting, protagonist, resources, enemies, mechanics, conflicts, and progression logic. Do not import setting, vocabulary, names, mechanics, or resources from any previous project or style sample.
 4. Rewrite this part from scratch according to the original approved instructions below, strictly respecting the SCRIPT VOICE RULES (write like a human YouTube manga recap storyteller, fast-paced, highly visual, direct, action-focused):
 
 Original Part Prompt:
@@ -927,19 +927,16 @@ export function buildClaudeLitePartPrompt(
 - Fast, visual, emotional, and practical. Avoid descriptive fluff or clinical analysis.
 - Every paragraph should feel like an active, sequence-driven manga panel (representing one visual wave or camera shot).
 - No dry lectures. Incorporate any technical moves directly into intense physical actions and quick visual outcomes.
-- No sci-fi/dungeon/facility drift. Ground everything strictly on natural survival tactics and human conflict unless specifically authorized by the plan.
+- No sci-fi/dungeon/facility drift unless specifically authorized by the plan. Ground everything strictly on approved progression, strategy, and human conflict.
 - Prioritize story flow, suspense, emotional payoff, satisfying character clashes (face-slaps), and solid narrative continuity.`;
 
   // 7. Short style sample, three to six paragraphs
-  const styleSample = `I looked down the edge of the jagged black cliff. The freezing tide was slamming against the sharp reef below like iron hammers. One bad slip, and I’d be nothing but a red smear on the stone. But staying at the top meant getting tracked down by those arrogant camp guards within an hour. I had to move now.
+  const styleSample = `[RHYTHM-ONLY STYLE SAMPLE - DO NOT COPY SETTING/PREMISE/NAMES. Only follow the style, rhythm, and paragraph length constraint]
+The clock was ticking down. If the meter hit zero, the power grid would lock me out completely, and my entire month of resource hunting would be lost. The rival team stood near the terminal, laughing and waiting for my public failure. I could feel every eye in the room pressing against my back.
 
-I didn't waste breath arguing. I just pulled the canvas rucksack tighter against my shoulders, gripped a thick, prickly beach vine, and kicked off. The sharp fibers sliced deep into my damp palms, burning like fire. I clamped my teeth together, ignored the pain, and slid down the sheer cliff face line-by-line.
+I didn't waste seconds responding to their smug smirks. I focused on one copper wire showing through the frayed casing near the lower port. Gripping my simple hand-tool, I made a quick, decisive cut, bypassed the faulty node, and jammed the main lead directly into the secondary terminal.
 
-With a heavy thud, my feet landed in the wet sand. Ten feet out into the surf, a small cluster of boulders formed a natural rock barrier, calm and shielded from the violent tide. Inside that circle, seawater pooled, trapping three fat, silver mackerel. This was my first clean protein source in three days.
-
-Behind me, a voice sneered from the trees. It was the rival, still looking at me with the same smug, arrogant smirk he wore back at the shelter. "Outstanding plan, genius. You crawled down a dangerous cliff just to freeze on a wet beach."
-
-I didn't answer his bait. I grabbed a sharp clam shell, sliced a long vine, and quickly wove a tight mesh fence across the rocky opening. When the tide pulled back, the water drained out completely, leaving the silver mackerel trapped and wriggling on the dry stones. The rival's jaw went slack. His smug grin vanished instantly as he stared at the harvest in absolute silence.`;
+Sparks flew, and the main screen flickered once before glowing with a stable green status light. The timer froze with three seconds left on the clock. The rival team's leader stopped laughing, his jaw going slack in absolute silence. But the success was short-lived; a heavy warning siren began to echo from the corridor behind.`;
 
   // 8. Minimal hard rules
   const minimalHardRules = `- All narrative blocks must be written strictly in English.
@@ -1062,11 +1059,12 @@ Do not invent future events.
 ${previousInterlock}
 
 5. STYLE SAMPLE
-I did not argue with Ren. I let him laugh while the tide pulled the first fish trap under the rocks. Ten minutes later, his smile disappeared.
+[RHYTHM-ONLY STYLE SAMPLE - DO NOT COPY SETTING/PREMISE/NAMES. Only follow the style, rhythm, and paragraph length constraint]
+I did not waste time arguing with the rival. I let him laugh while the timer counted down. Ten seconds later, the smirk disappeared from his face.
 
-The bottle filled drop by drop under the plastic sheet. It looked stupid, almost pathetic. But by noon, I had clean water, and Ren had a dry throat.
+The progress bar filled drop by drop on the screen. It looked pathetic, almost useless. But by noon, my node was fully secure, and the rival was locked out of the network.
 
-When the storm hit, his shelter folded first. Mine bent, shook, and stayed standing. That was the moment Airi stopped looking at him.
+When the new system update rolled out, his configuration crashed first. Mine held, adapted, and stayed active. That was the moment the supervisor stopped listening to him.
 
 6. FORBIDDEN FOR THIS PART
 Do not use sci-fi/facility/test/proctor/dungeon language.
