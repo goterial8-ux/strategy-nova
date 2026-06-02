@@ -451,6 +451,12 @@ export default function App() {
 
   const handleApproveAndLock = () => {
     if (currentStageId === 'script_writer') {
+      const allPartsApproved = state.scriptParts.length > 0 && state.scriptParts.every(p => p.status === 'approved');
+      if (!allPartsApproved) {
+        setWarningMessage("All script parts must be approved before locking the Script Writer stage.");
+        setTimeout(() => setWarningMessage(null), 5000);
+        return;
+      }
       const assembledContent = state.scriptParts.map(p => `## Part ${p.partNumber}: ${p.partTitle}\n\n${p.draftText}`).join('\n\n');
       updateState({ 
         fullScript: assembledContent,
@@ -458,6 +464,12 @@ export default function App() {
         lockedData: { ...state.lockedData, script_writer: true }
       });
     } else {
+      const report = state.supervisorReports[currentStageId];
+      if (!report || report.status !== 'ok' || report.canContinue !== true) {
+        setWarningMessage("Run AI Supervisor and pass quality check before locking this stage.");
+        setTimeout(() => setWarningMessage(null), 5000);
+        return;
+      }
       updateStageStatus(currentStageId, 'locked');
       updateState({
         lockedData: { ...state.lockedData, [currentStageId]: true }
@@ -468,7 +480,9 @@ export default function App() {
   const handleSendToNext = () => {
     const currentState = stateRef.current;
     if (currentState.stageStatuses[currentStageId] !== 'locked') {
-      updateStageStatus(currentStageId, 'locked');
+      setWarningMessage("Current stage must be approved and locked before moving forward.");
+      setTimeout(() => setWarningMessage(null), 5000);
+      return;
     }
     const currentIndex = STAGES.findIndex(s => s.id === currentStageId);
     if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
@@ -489,14 +503,33 @@ export default function App() {
         body: JSON.stringify({ prompt: promptUsed, type: 'supervisor', stageId: currentStageId })
       })
       .then(data => {
-        const report: SupervisorReport = data.parsed;
+        let report: SupervisorReport = data.parsed;
+        if (!report) {
+          report = {
+            status: 'needs_serious_repair',
+            whatIsGood: '',
+            problems: ['AI supervisor report cannot be parsed'],
+            requiredFixes: ['Retry analysis'],
+            recommendation: 'Validation failed or parsed object was empty.',
+            canContinue: false
+          };
+        }
+
+        const shortQualityGateSummary = [
+          `=== QUALITY GATE SUMMARY ===`,
+          `Checked Stage: ${currentStageId}`,
+          `Status: ${report.status.toUpperCase()}`,
+          `What Passed: ${report.whatIsGood || 'None Specified'}`,
+          `Remaining Risks: ${report.problems.length > 0 ? report.problems.join(', ') : 'None detected'}`,
+          `Next Safe Action: ${report.canContinue ? 'Approve & lock this stage to proceed.' : (report.requiredFixes.join(', ') || 'Repair and check again.')}`
+        ].join('\n');
         
         const newHistoryEntry = {
             id: Date.now().toString(),
             stageId: currentStageId,
             promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
             inputDataSummary: `Analyze output for ${currentStageId}`,
-            outputPreview: JSON.stringify(report, null, 2),
+            outputPreview: `${JSON.stringify(report, null, 2)}\n\n${shortQualityGateSummary}`,
             createdAt: Date.now(),
             supervisorStatus: report.status,
             repairApplied: false,
@@ -569,12 +602,21 @@ export default function App() {
           mergedReport = mergeSupervisorReportWithValidation(aiReport, localVal);
         }
 
+        const shortQualityGateSummary = [
+          `=== QUALITY GATE SUMMARY (AFTER REPAIR) ===`,
+          `Checked Stage: ${currentStageId}`,
+          `Status: ${mergedReport.status.toUpperCase()}`,
+          `What Passed: ${mergedReport.whatIsGood || 'None Specified'}`,
+          `Remaining Risks: ${mergedReport.problems.length > 0 ? mergedReport.problems.join(', ') : 'None detected'}`,
+          `Next Safe Action: ${mergedReport.canContinue ? 'Approve & lock this stage to proceed.' : (mergedReport.requiredFixes.join(', ') || 'Repair and check again.')}`
+        ].join('\n');
+
         const newHistoryEntry = {
             id: Date.now().toString(),
             stageId: currentStageId,
             promptUsed: promptUsed.length > 800 ? promptUsed.substring(0, 800) + '...\n[TRUNCATED TO PREVENT QUOTA EXCEEDED]' : promptUsed,
             inputDataSummary: `Repair output & Re-analysis for ${currentStageId}`,
-            outputPreview: `[OUTPUT PREVIEW]:\n${textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : '')}\n\n[SUPERVISOR REPORT]:\n${JSON.stringify(mergedReport, null, 2)}`,
+            outputPreview: `[OUTPUT PREVIEW]:\n${textOutput.substring(0, 300) + (textOutput.length > 300 ? '...' : '')}\n\n[SUPERVISOR REPORT]:\n${JSON.stringify(mergedReport, null, 2)}\n\n${shortQualityGateSummary}`,
             createdAt: Date.now(),
             supervisorStatus: mergedReport.status,
             repairApplied: true,
@@ -959,7 +1001,23 @@ export default function App() {
             stageName={stageName}
             stageStatus={stageStatus}
             stageContent={getStageContent(currentStageId)}
-            updateStageContent={(content) => setStageContent(currentStageId, content)}
+            updateStageContent={(content) => {
+              setStageContent(currentStageId, content);
+              const currentStatus = state.stageStatuses[currentStageId];
+              const hasReport = !!state.supervisorReports[currentStageId];
+              if (currentStatus !== 'locked' && (currentStatus !== 'generated' || hasReport)) {
+                updateState({
+                  stageStatuses: {
+                    ...state.stageStatuses,
+                    [currentStageId]: 'generated'
+                  },
+                  supervisorReports: {
+                    ...state.supervisorReports,
+                    [currentStageId]: null
+                  }
+                });
+              }
+            }}
             onGenerate={handleGenerate}
             onApproveAndLock={handleApproveAndLock}
             onUnlockStage={() => handleUnlockStage(currentStageId)}

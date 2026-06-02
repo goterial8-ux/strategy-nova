@@ -68,17 +68,9 @@ export function SupervisorPanel({ report, isGenerating, onAnalyze, onApplyRepair
                 >
                   Apply Suggested Repair
                 </button>
-                {report.status !== 'do_not_continue' && (
-                  <button 
-                    onClick={onApproveAnyway}
-                    className="px-4 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] font-bold transition-all shadow-sm"
-                  >
-                    Approve Anyway
-                  </button>
-                )}
              </>
            )}
-           {report.status === 'ok' && (
+           {report.status === 'ok' && report.canContinue === true && (
              <button 
                onClick={onProceed}
                className="px-4 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"

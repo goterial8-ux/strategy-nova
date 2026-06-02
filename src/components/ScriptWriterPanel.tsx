@@ -224,7 +224,14 @@ export function ScriptWriterPanel({
                   <textarea
                     className="w-full min-h-[140px] text-[13px] text-slate-700 leading-relaxed resize-y focus:outline-none focus:border-blue-500 p-2 border border-slate-200 hover:border-slate-300 rounded bg-slate-50/50 font-serif"
                     value={part.draftText}
-                    onChange={e => updatePart(idx, { draftText: e.target.value })}
+                    onChange={e => {
+                      const updates: Partial<ScriptPart> = { draftText: e.target.value };
+                      if (part.status === 'approved') {
+                        updates.status = 'generated';
+                      }
+                      updates.validationIssues = [];
+                      updatePart(idx, updates);
+                    }}
                     placeholder={`Draft content for Part ${part.partNumber}...`}
                     disabled={part.status === 'locked'}
                   />
