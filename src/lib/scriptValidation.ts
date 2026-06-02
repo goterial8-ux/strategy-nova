@@ -551,7 +551,7 @@ export function mergeSupervisorReportWithValidation(
       );
     } else if (issue.code === "hard_story_drift") {
       validationFixes.push(
-        "STRICT CORRECTIVE ACTION: Discard sci-fi terminology and completely rebuild this part according to the locked approved island survival plan.",
+        "STRICT CORRECTIVE ACTION: Discard off-premise terminology and completely rebuild this part according to the locked approved story contract, approved story plan, and current part scene cards.",
       );
     } else if (issue.code === "scientific_technical_tone") {
       validationFixes.push(
