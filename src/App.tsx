@@ -599,10 +599,11 @@ export default function App() {
             localScriptVal,
           );
 
-          const isLocalOk = localScriptVal.ok;
-          const isAIOk = aiReport.status === "ok" && aiReport.canContinue;
+          const isApproved =
+            mergedReport.status === "ok" &&
+            mergedReport.canContinue === true;
 
-          if (isLocalOk && isAIOk) {
+          if (isApproved) {
             updateScriptPart(currentPartIndex, {
               status: "approved",
               supervisorReport: mergedReport,
