@@ -190,7 +190,7 @@ async function generateContent(prompt: string, expectJson: boolean = false, stag
 async function generateClaudeContent(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY || "sk-dfc468f05596d9f3354c6043bb73e2f3465d2bf69f0cb1a27ece5c215e6f668d";
   const baseURL = "https://aiprimetech.io/v1";
-  const model = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
+  const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-6";
 
   console.log(`[Anthropic Custom] Requesting messages with model ${model}...`);
   const response = await fetch(`${baseURL}/messages`, {
@@ -203,7 +203,7 @@ async function generateClaudeContent(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: model,
       max_tokens: 12000,
-      temperature: 0.7,
+      temperature: 1.0, // Increased to 1.0 for "maximum power/creativity"
       messages: [{ role: "user", content: prompt }],
     }),
   });

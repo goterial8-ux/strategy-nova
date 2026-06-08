@@ -909,21 +909,44 @@ export function buildClaudeLitePartPrompt(
   // 4. Current part scene cards only
   const currentPartSceneCards = part?.sourceSceneCards || "No scene cards specified.";
 
-  // 5. Summary of previous approved parts only
+  // 5. Summary of previous approved parts (strictly limited to prevent context overload)
   const previousParts = state.scriptParts.filter(
     (p) => p.partNumber < partNumber && p.status === "approved" && p.draftText && p.draftText.length > 0,
   );
-  const previousSummary = previousParts.length > 0
-    ? previousParts
-        .map(
-          (p) =>
-            `- Part ${p.partNumber}: "${p.partTitle}"\n  Content Preview:\n  ${p.draftText}`,
-        )
-        .join("\n\n")
-    : "None. This is the first part of the script.";
+  
+  let previousSummary = "None. This is the first part of the script.";
+  if (previousParts.length > 0) {
+    // Take only up to the last 2 parts to avoid context explosion
+    const recentParts = previousParts.slice(-2);
+    previousSummary = recentParts
+      .map((p, idx) => {
+        const isImmediatePrevious = idx === recentParts.length - 1;
+        let textContent = p.draftText || "";
+        
+        if (isImmediatePrevious) {
+            // Include just the last 600 characters of the immediately preceding part for seamless narrative continuity
+            if (textContent.length > 600) {
+                textContent = "... [earlier text stripped for context limit] ...\n" + textContent.substring(textContent.length - 600);
+            }
+        } else {
+            // For older parts, just a very brief snippet to remember the tone
+            textContent = textContent.substring(0, 150) + "... [truncated]";
+        }
+        
+        return `- Part ${p.partNumber}: "${p.partTitle}"\n  Recent continuity snippet:\n  ${textContent}`;
+      })
+      .join("\n\n");
+  }
 
-  // 6. Short style DNA
-  const shortStyleDna = `- Write strictly in the first-person voice and perspective of our live protagonist ("I", "my", "we"). Keep it conversational, active, and immediate.
+  // Current draft text (if we are regenerating or continuing, so the user/model can see the current text of the part)
+  let currentDraftSection = "";
+  if (part?.draftText && part.draftText.length > 0) {
+      currentDraftSection = `\n### CURRENT DRAFT OF THIS PART (For reference/continuity):\n${part.draftText}\n`;
+  }
+
+  // 6. STRICT STYLE PRIORITY (Writing style is the absolute highest priority)
+  const shortStyleDna = `!!! CRITICAL PRIORITY: WRITING STYLE & TONE !!!
+- Write strictly in the first-person voice and perspective of our live protagonist ("I", "my", "we"). Keep it conversational, active, and immediate.
 - Fast, visual, emotional, and practical. Avoid descriptive fluff or clinical analysis.
 - Every paragraph should feel like an active, sequence-driven manga panel (representing one visual wave or camera shot).
 - No dry lectures. Incorporate any technical moves directly into intense physical actions and quick visual outcomes.
@@ -973,6 +996,7 @@ ${styleSample}
 ### 8. MINIMAL HARD RULES
 ${minimalHardRules}
 
+${currentDraftSection}
 ${anchorBlock}
 
 Begin drafting the text for Part ${partNumber} below:`;
