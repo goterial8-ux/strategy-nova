@@ -188,14 +188,12 @@ async function generateContent(prompt: string, expectJson: boolean = false, stag
 }
 
 async function generateClaudeContent(prompt: string): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is required but missing.");
-  }
+  const apiKey = process.env.ANTHROPIC_API_KEY || "sk-dfc468f05596d9f3354c6043bb73e2f3465d2bf69f0cb1a27ece5c215e6f668d";
+  const baseURL = "https://aiprimetech.io/v1";
   const model = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
 
-  console.log(`[Anthropic] Requesting messages with model ${model}...`);
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  console.log(`[Anthropic Custom] Requesting messages with model ${model}...`);
+  const response = await fetch(`${baseURL}/messages`, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -212,17 +210,17 @@ async function generateClaudeContent(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error(`[Anthropic Error] Direct API call failed with status ${response.status}:`, errText);
-    throw new Error(`Anthropic API call failed: ${errText}`);
+    console.error(`[Anthropic Custom Error] Direct API call failed with status ${response.status}:`, errText);
+    throw new Error(`Anthropic Custom API call failed: ${errText}`);
   }
 
   const data = await response.json() as { content?: Array<{ type: string; text?: string }> };
   if (data && data.content && data.content[0] && typeof data.content[0].text === "string") {
-    console.log(`[Anthropic] Success with ${model}`);
+    console.log(`[Anthropic Custom] Success with ${model}`);
     return data.content[0].text;
   }
 
-  throw new Error("Invalid or empty response structure from Anthropic Claude API.");
+  throw new Error("Invalid or empty response structure from Anthropic Custom API.");
 }
 
 // Unified generate/RPC route
