@@ -99,7 +99,6 @@ interface RightPanelProps {
   onCheckPart: (index: number) => void;
   onRebuildPart?: (index: number) => void;
   onAssembleScript: () => void;
-  hasSupervisorReport?: boolean;
   autopilotState?: AutopilotState;
 }
 
@@ -127,7 +126,6 @@ export function RightPanel({
   onCheckPart,
   onRebuildPart,
   onAssembleScript,
-  hasSupervisorReport,
   autopilotState
 }: RightPanelProps) {
   
@@ -535,12 +533,8 @@ export function RightPanel({
             />
             {stageStatus !== 'locked' && stageStatus !== 'not_started' && (
               <div className="absolute top-4 right-4 z-10">
-                <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-1 border shadow-sm rounded-sm ${
-                  hasSupervisorReport 
-                    ? "bg-slate-100 text-slate-600 border-slate-200" 
-                    : "bg-amber-50 text-amber-700 border-amber-200"
-                }`}>
-                  {hasSupervisorReport ? "✓ Checked & Stable" : "⚠️ Needs recheck after manual edit"}
+                <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-1 border shadow-sm rounded-sm bg-slate-100 text-slate-600 border-slate-200`}>
+                  ✓ Auto-enabled
                 </span>
               </div>
             )}

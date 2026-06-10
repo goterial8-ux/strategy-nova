@@ -203,7 +203,7 @@ async function generateClaudeContent(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: model,
       max_tokens: 12000,
-      temperature: 1.0, // Increased to 1.0 for "maximum power/creativity"
+      temperature: process.env.ANTHROPIC_TEMPERATURE ? parseFloat(process.env.ANTHROPIC_TEMPERATURE) : 0.8,
       messages: [{ role: "user", content: prompt }],
     }),
   });
